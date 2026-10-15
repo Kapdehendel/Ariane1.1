@@ -50,9 +50,9 @@
         .message-bubble { padding: 1rem; border-radius: 12px; line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap; word-wrap: break-word; }
         .message.user .message-bubble { background-color: var(--accent); color: white; border-bottom-right-radius: 4px; }
         .message.ai .message-bubble { background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-bottom-left-radius: 4px; }
-        .message-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
-        .btn-action { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; }
-        .btn-action:hover { background-color: var(--bg-tertiary); color: var(--text-primary); }
+        .message-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
+        .btn-action { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: all 0.2s; }
+        .btn-action:hover { background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--text-secondary); }
         .edit-textarea { width: 100%; background: var(--bg-tertiary); border: 1px solid var(--accent); color: var(--text-primary); padding: 0.5rem; border-radius: 6px; font-family: inherit; font-size: 0.95rem; resize: vertical; }
         .timer-badge { font-size: 0.7rem; color: var(--warning-text); display: flex; align-items: center; gap: 0.3rem; }
 
@@ -192,16 +192,17 @@
 
             chat.messages.forEach((msg, index) => {
                 const msgDiv = document.createElement('div');
-                msgDiv.className = `message ${msg.role}`;
+                msgDiv.className = `message ${msg.role === 'assistant' ? 'ai' : msg.role}`;
                 
                 let actionsHtml = '';
                 if (msg.role === 'user') {
                     actionsHtml = `<button class="btn-action" onclick="editMessage(${index})">✏️ Modifier</button>`;
                 } else {
                     const timerText = msg.responseTime ? `⏱ ${msg.responseTime}s` : '';
+                    // Utilisation d'un attribut data pour stocker l'index, plus sûr que de passer le texte en argument
                     actionsHtml = `
                         <span class="timer-badge">${timerText}</span>
-                        <button class="btn-action" onclick="copyMessage('${msg.content.replace(/'/g, "\\'")}')">📋 Copier</button>
+                        <button class="btn-action" onclick="copyMessage(${index})">📋 Copier</button>
                         <button class="btn-action" onclick="retryMessage(${index})">🔄 Réessayer</button>
                     `;
                 }
@@ -289,7 +290,6 @@
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true;
 
-            // Afficher l'indicateur de frappe
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'message ai';
             loadingDiv.id = 'loading-msg';
@@ -304,10 +304,7 @@
 
             const startTime = Date.now();
             
-            // Préparer les messages pour l'API (System + Historique)
             const apiMessages = [{ role: 'system', content: SYSTEM_PROMPT }];
-            
-            // Si on retry, on ne prend que jusqu'au message utilisateur ciblé
             const limit = retryIndex !== null ? retryIndex : chat.messages.length;
             for (let i = 0; i < limit; i++) {
                 apiMessages.push({ role: chat.messages[i].role, content: chat.messages[i].content });
@@ -330,14 +327,11 @@
                 const aiText = data.choices[0].message.content;
                 const responseTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
-                // Retirer le loading
                 document.getElementById('loading-msg').remove();
 
                 if (retryIndex !== null) {
-                    // Remplacer l'ancienne réponse
                     chat.messages[retryIndex] = { role: 'assistant', content: aiText, responseTime: responseTime };
                 } else {
-                    // Ajouter nouvelle réponse
                     chat.messages.push({ role: 'assistant', content: aiText, responseTime: responseTime });
                 }
                 
@@ -386,31 +380,69 @@
             if (!newText) return;
 
             chat.messages[index].content = newText;
-            // Supprimer toutes les réponses après ce message pour régénérer proprement
             chat.messages = chat.messages.slice(0, index + 1);
             saveData();
             renderChat();
-            generateAIResponse(index); // index est maintenant celui du dernier message user
+            generateAIResponse(index);
         }
 
         function retryMessage(index) {
-            // index est celui du message AI. Le message user est à index - 1.
             const chat = getCurrentChat();
             const userMsgIndex = index - 1;
-            
-            // On supprime la réponse AI actuelle
             chat.messages.splice(index, 1);
             saveData();
             renderChat();
-            
-            // On régénère à partir du dernier message user
             generateAIResponse(userMsgIndex);
         }
 
-        function copyMessage(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert("Réponse copiée dans le presse-papier !");
-            });
+        // --- CORRECTION DU BOUTON COPIER ---
+        function copyMessage(index) {
+            const chat = getCurrentChat();
+            const textToCopy = chat.messages[index].content;
+            
+            // Méthode moderne avec fallback pour les anciens navigateurs
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showCopyFeedback(index);
+                }).catch(err => {
+                    console.error('Erreur clipboard moderne:', err);
+                    fallbackCopyText(textToCopy, index);
+                });
+            } else {
+                fallbackCopyText(textToCopy, index);
+            }
+        }
+
+        function fallbackCopyText(text, index) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";  // Avoid scrolling to bottom
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showCopyFeedback(index);
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+                alert("Impossible de copier automatiquement. Veuillez sélectionner le texte manuellement.");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showCopyFeedback(index) {
+            // Trouver le bouton spécifique dans le DOM pour changer son texte temporairement
+            const msgActions = document.querySelectorAll('.message-actions')[index];
+            if (msgActions) {
+                const btn = msgActions.querySelector('button[onclick^="copyMessage"]');
+                if (btn) {
+                    const originalHTML = btn.innerHTML;
+                    btn.innerHTML = '✅ Copié !';
+                    setTimeout(() => {
+                        btn.innerHTML = originalHTML;
+                    }, 2000);
+                }
+            }
         }
 
         // --- 7. UTILITAIRES ---
