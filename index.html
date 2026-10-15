@@ -53,8 +53,11 @@
         .message-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
         .btn-action { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: all 0.2s; }
         .btn-action:hover { background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--text-secondary); }
+        .btn-continue { background-color: var(--warning-text); color: #000; border: none; font-weight: 600; }
+        .btn-continue:hover { background-color: #ca8a04; }
         .edit-textarea { width: 100%; background: var(--bg-tertiary); border: 1px solid var(--accent); color: var(--text-primary); padding: 0.5rem; border-radius: 6px; font-family: inherit; font-size: 0.95rem; resize: vertical; }
         .timer-badge { font-size: 0.7rem; color: var(--warning-text); display: flex; align-items: center; gap: 0.3rem; }
+        .truncated-warning { color: var(--warning-text); font-size: 0.85rem; margin-top: 0.5rem; padding: 0.5rem; background: var(--warning-bg); border-radius: 6px; }
 
         /* Input Area */
         .input-area { padding: 1.5rem; border-top: 1px solid var(--border-color); background-color: var(--bg-primary); }
@@ -138,7 +141,7 @@
 
         const API_URL = "https://text.pollinations.ai/openai/chat/completions";
         
-        // --- 2. GESTION DES DONNÉES (LocalStorage) ---
+        // --- 2. GESTION DES DONNÉES (LocalStorage avec protection) ---
         let conversations = JSON.parse(localStorage.getItem('ariane_chats')) || [];
         let currentChatId = localStorage.getItem('ariane_current_chat') || null;
 
@@ -149,8 +152,21 @@
         }
 
         function saveData() {
-            localStorage.setItem('ariane_chats', JSON.stringify(conversations));
-            localStorage.setItem('ariane_current_chat', currentChatId);
+            try {
+                localStorage.setItem('ariane_chats', JSON.stringify(conversations));
+                localStorage.setItem('ariane_current_chat', currentChatId);
+            } catch (e) {
+                if (e.name === 'QuotaExceededError' || e.code === 22) {
+                    console.warn('localStorage plein, suppression des anciennes conversations');
+                    // Supprimer les 50% les plus anciennes
+                    conversations = conversations.slice(0, Math.floor(conversations.length / 2));
+                    try {
+                        localStorage.setItem('ariane_chats', JSON.stringify(conversations));
+                    } catch (e2) {
+                        console.error('Impossible de sauvegarder même après nettoyage');
+                    }
+                }
+            }
         }
 
         function getCurrentChat() {
@@ -199,19 +215,25 @@
                     actionsHtml = `<button class="btn-action" onclick="editMessage(${index})">✏️ Modifier</button>`;
                 } else {
                     const timerText = msg.responseTime ? `⏱ ${msg.responseTime}s` : '';
-                    // Utilisation d'un attribut data pour stocker l'index, plus sûr que de passer le texte en argument
+                    const isTruncated = msg.truncated === true;
+                    
                     actionsHtml = `
                         <span class="timer-badge">${timerText}</span>
                         <button class="btn-action" onclick="copyMessage(${index})">📋 Copier</button>
                         <button class="btn-action" onclick="retryMessage(${index})">🔄 Réessayer</button>
+                        ${isTruncated ? `<button class="btn-action btn-continue" onclick="continueMessage(${index})">➡️ Continuer</button>` : ''}
                     `;
                 }
+
+                const truncatedWarning = msg.truncated ? 
+                    `<div class="truncated-warning">⚠️ Réponse tronquée (limite de tokens atteinte). Cliquez sur "Continuer" pour la suite.</div>` : '';
 
                 msgDiv.innerHTML = `
                     <div class="message-header">
                         <strong>${msg.role === 'user' ? 'Vous' : 'Λ ARIANE'}</strong>
                     </div>
                     <div class="message-bubble" id="msg-content-${index}">${formatText(msg.content)}</div>
+                    ${truncatedWarning}
                     <div class="message-actions">${actionsHtml}</div>
                 `;
                 area.appendChild(msgDiv);
@@ -284,7 +306,7 @@
             await generateAIResponse();
         }
 
-        async function generateAIResponse(retryIndex = null) {
+        async function generateAIResponse(retryIndex = null, continueFrom = null) {
             const chat = getCurrentChat();
             const area = document.getElementById('chatArea');
             const sendBtn = document.getElementById('sendBtn');
@@ -305,9 +327,20 @@
             const startTime = Date.now();
             
             const apiMessages = [{ role: 'system', content: SYSTEM_PROMPT }];
-            const limit = retryIndex !== null ? retryIndex : chat.messages.length;
-            for (let i = 0; i < limit; i++) {
-                apiMessages.push({ role: chat.messages[i].role, content: chat.messages[i].content });
+            
+            // Si on continue une réponse tronquée
+            if (continueFrom !== null) {
+                const lastUserMsg = chat.messages[continueFrom - 1];
+                const truncatedMsg = chat.messages[continueFrom];
+                apiMessages.push({ role: 'user', content: lastUserMsg.content });
+                apiMessages.push({ role: 'assistant', content: truncatedMsg.content });
+                apiMessages.push({ role: 'user', content: 'Continue exactement là où tu t\'es arrêté dans ta réponse précédente, sans répéter ce qui a déjà été dit.' });
+            } else {
+                // Requête normale
+                const limit = retryIndex !== null ? retryIndex : chat.messages.length;
+                for (let i = 0; i < limit; i++) {
+                    apiMessages.push({ role: chat.messages[i].role, content: chat.messages[i].content });
+                }
             }
 
             try {
@@ -317,6 +350,7 @@
                     body: JSON.stringify({
                         model: "openai",
                         messages: apiMessages,
+                        max_tokens: 16000,  // ← CORRECTION : permet des réponses très longues
                         seed: Math.floor(Math.random() * 10000)
                     })
                 });
@@ -325,14 +359,33 @@
                 
                 const data = await response.json();
                 const aiText = data.choices[0].message.content;
+                const finishReason = data.choices[0].finish_reason;
                 const responseTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                // Détection du tronquage
+                const isTruncated = finishReason === 'length';
 
                 document.getElementById('loading-msg').remove();
 
-                if (retryIndex !== null) {
-                    chat.messages[retryIndex] = { role: 'assistant', content: aiText, responseTime: responseTime };
+                if (continueFrom !== null) {
+                    // Ajouter la suite à la réponse tronquée
+                    chat.messages[continueFrom].content += '\n\n' + aiText;
+                    chat.messages[continueFrom].truncated = isTruncated;
+                    chat.messages[continueFrom].responseTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                } else if (retryIndex !== null) {
+                    chat.messages[retryIndex] = { 
+                        role: 'assistant', 
+                        content: aiText, 
+                        responseTime: responseTime,
+                        truncated: isTruncated
+                    };
                 } else {
-                    chat.messages.push({ role: 'assistant', content: aiText, responseTime: responseTime });
+                    chat.messages.push({ 
+                        role: 'assistant', 
+                        content: aiText, 
+                        responseTime: responseTime,
+                        truncated: isTruncated
+                    });
                 }
                 
                 saveData();
@@ -395,12 +448,14 @@
             generateAIResponse(userMsgIndex);
         }
 
-        // --- CORRECTION DU BOUTON COPIER ---
+        function continueMessage(index) {
+            generateAIResponse(null, index);
+        }
+
         function copyMessage(index) {
             const chat = getCurrentChat();
             const textToCopy = chat.messages[index].content;
             
-            // Méthode moderne avec fallback pour les anciens navigateurs
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(textToCopy).then(() => {
                     showCopyFeedback(index);
@@ -416,7 +471,7 @@
         function fallbackCopyText(text, index) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
-            textArea.style.position = "fixed";  // Avoid scrolling to bottom
+            textArea.style.position = "fixed";
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
@@ -431,10 +486,9 @@
         }
 
         function showCopyFeedback(index) {
-            // Trouver le bouton spécifique dans le DOM pour changer son texte temporairement
-            const msgActions = document.querySelectorAll('.message-actions')[index];
-            if (msgActions) {
-                const btn = msgActions.querySelector('button[onclick^="copyMessage"]');
+            const msgElements = document.querySelectorAll('.message');
+            if (msgElements[index]) {
+                const btn = msgElements[index].querySelector('button[onclick^="copyMessage"]');
                 if (btn) {
                     const originalHTML = btn.innerHTML;
                     btn.innerHTML = '✅ Copié !';
