@@ -2,64 +2,495 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0f1115">
-<title>ARIANE — Audit et diagnostic systémique</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIANE — Intelligence d'audit et de diagnostic systémique</title>
 <style>
-:root{--bg:#0f1115;--panel:#161920;--panel2:#1e222b;--border:#2a2f3a;--text:#e6e9ef;--muted:#949aa8;--blue:#3b82f6;--blue2:#2563eb;--red:#ef4444;--green:#10b981;--yellow:#eab308}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}body{display:flex;overflow:hidden}button,textarea{font:inherit}button{cursor:pointer}button:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-.sidebar{width:290px;flex:0 0 290px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:5}.sidebar.collapsed{display:none}.side-head{padding:1rem;border-bottom:1px solid var(--border)}.new-chat{width:100%;padding:.75rem;background:var(--blue);color:white;border:0;border-radius:8px;font-weight:600}.history{flex:1;overflow:auto;padding:.5rem}.history-row{display:flex;gap:.3rem;align-items:center;padding:.45rem;border-radius:6px;color:var(--muted)}.history-row.active,.history-row:hover{background:var(--panel2)}.history-row.active{border-left:3px solid var(--blue);color:var(--blue)}.history-name{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:none;border:0;color:inherit;padding:.3rem}.delete-chat{background:none;border:0;color:var(--red);padding:.3rem}
-.main{flex:1;min-width:0;display:flex;flex-direction:column}.top{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.85rem 1.1rem;border-bottom:1px solid var(--border)}.top-left{display:flex;align-items:center;gap:1rem}.toggle{background:none;border:0;color:var(--muted);font-size:1.5rem}.brand{font-size:1.1rem;margin:0}.tags{font-size:.75rem;color:var(--blue);margin-top:.2rem}.warning{font-size:.75rem;color:var(--yellow);background:#eab30818;padding:.4rem .65rem;border-radius:6px}
-.chat{flex:1;min-height:0;overflow:auto;padding:1.25rem;display:flex;flex-direction:column;gap:1.2rem}.welcome{text-align:center;color:var(--muted);margin:auto 0;line-height:1.6;padding:1rem}.logo{font-size:2.5rem;color:var(--blue)}.message{max-width:92%;display:flex;flex-direction:column}.message.user{align-self:flex-end}.message.ai{align-self:flex-start;width:min(100%,1000px)}.msg-head{font-size:.8rem;color:var(--muted);margin-bottom:.4rem}.bubble{padding:1rem;border-radius:12px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}.user .bubble{background:var(--blue);color:white;border-bottom-right-radius:4px}.ai .bubble{background:var(--panel);border:1px solid var(--border);border-bottom-left-radius:4px}.actions{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.5rem}.action{border:1px solid var(--border);border-radius:5px;background:none;color:var(--muted);padding:.35rem .55rem;font-size:.78rem}.action:hover{background:var(--panel2);color:var(--text)}.continue{background:var(--yellow);color:#111;border:0}.timer{font-size:.7rem;color:var(--yellow)}.truncated{margin-top:.5rem;padding:.5rem;background:#eab30818;color:var(--yellow);border-radius:6px;font-size:.83rem}.edit{width:100%;min-height:100px;resize:vertical;background:var(--panel2);color:var(--text);border:1px solid var(--blue);border-radius:6px;padding:.6rem}
-.input-area{padding:.8rem 1rem;border-top:1px solid var(--border)}.input-box{max-width:1000px;margin:auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:.7rem;display:flex;flex-direction:column;gap:.5rem}.input-box:focus-within{border-color:var(--blue)}.meta{display:flex;justify-content:space-between;gap:.6rem;flex-wrap:wrap;color:var(--muted);font-size:.75rem}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--yellow);margin-right:.35rem}.dot.ok{background:var(--green)}.dot.bad{background:var(--red)}#userInput{width:100%;min-height:26px;max-height:180px;resize:none;border:0;outline:0;background:transparent;color:var(--text);line-height:1.5}.send{align-self:flex-end;background:var(--blue);color:white;border:0;border-radius:6px;padding:.6rem 1rem;font-weight:600}.send:disabled{background:var(--panel2);color:var(--muted);cursor:wait}.typing{display:flex;gap:4px;padding:.5rem 0}.typing span{width:8px;height:8px;border-radius:50%;background:var(--muted);animation:bounce 1.2s infinite}.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}@keyframes bounce{50%{opacity:.25;transform:translateY(-3px)}}
-@media(max-width:768px){.sidebar{position:absolute;inset:0 auto 0 0;height:100%;width:min(290px,86vw);transform:translateX(-105%);box-shadow:5px 0 15px #0008}.sidebar.open{transform:translateX(0)}.sidebar.collapsed{display:flex;transform:translateX(-105%)}.warning{display:none}.chat{padding:.8rem}.message{max-width:98%}.top{padding:.7rem}.input-area{padding:.6rem}}
+:root {
+--bg-primary: #0f1115; --bg-secondary: #161920; --bg-tertiary: #1e222b;
+--border-color: #2a2f3a; --text-primary: #e6e9ef; --text-secondary: #949aa8;
+--accent: #3b82f6; --accent-hover: #2563eb; --danger: #ef4444; --success: #10b981;
+--warning-bg: rgba(234, 179, 8, 0.1); --warning-text: #eab308;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-primary); color: var(--text-primary); height: 100vh; display: flex; overflow: hidden; }
+
+/* Sidebar */
+.sidebar { width: 300px; background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 100; }
+.sidebar.collapsed { transform: translateX(-100%); position: absolute; height: 100%; }
+.sidebar-header { padding: 1rem; border-bottom: 1px solid var(--border-color); }
+.btn-new-chat { width: 100%; padding: 0.75rem; background-color: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+.btn-new-chat:hover { background-color: var(--accent-hover); }
+.history-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
+.history-item { padding: 0.75rem; border-radius: 6px; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; transition: background 0.2s; }
+.history-item:hover { background-color: var(--bg-tertiary); color: var(--text-primary); }
+.history-item.active { background-color: var(--bg-tertiary); color: var(--accent); border-left: 3px solid var(--accent); }
+.history-item-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn-delete-chat { background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; opacity: 0.6; }
+.btn-delete-chat:hover { opacity: 1; }
+
+/* Main Content */
+.main-content { flex: 1; display: flex; flex-direction: column; position: relative; width: 100%; }
+.top-bar { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-primary); }
+.top-bar-left { display: flex; align-items: center; gap: 1rem; }
+.btn-toggle-sidebar { background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; }
+.header-info h1 { font-size: 1.1rem; font-weight: 600; }
+.header-info .tags { font-size: 0.75rem; color: var(--accent); margin-top: 0.25rem; letter-spacing: 0.5px; }
+.warning-banner { font-size: 0.75rem; color: var(--warning-text); background: var(--warning-bg); padding: 0.4rem 0.8rem; border-radius: 6px; }
+
+/* Chat Area */
+.chat-area { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; scroll-behavior: smooth; }
+.welcome-message { text-align: center; color: var(--text-secondary); margin-top: 15vh; line-height: 1.6; }
+.welcome-message .logo { font-size: 2.5rem; margin-bottom: 1rem; color: var(--accent); }
+
+/* Messages */
+.message { display: flex; flex-direction: column; max-width: 85%; animation: fadeIn 0.3s ease; }
+.message.user { align-self: flex-end; }
+.message.ai { align-self: flex-start; }
+.message-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; font-size: 0.8rem; color: var(--text-secondary); }
+.message-bubble { padding: 1rem; border-radius: 12px; line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap; word-wrap: break-word; }
+.message.user .message-bubble { background-color: var(--accent); color: white; border-bottom-right-radius: 4px; }
+.message.ai .message-bubble { background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-bottom-left-radius: 4px; }
+.message-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
+.btn-action { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; transition: all 0.2s; }
+.btn-action:hover { background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--text-secondary); }
+.btn-continue { background-color: var(--warning-text); color: #000; border: none; font-weight: 600; }
+.btn-continue:hover { background-color: #ca8a04; }
+.edit-textarea { width: 100%; background: var(--bg-tertiary); border: 1px solid var(--accent); color: var(--text-primary); padding: 0.5rem; border-radius: 6px; font-family: inherit; font-size: 0.95rem; resize: vertical; }
+.timer-badge { font-size: 0.7rem; color: var(--warning-text); display: flex; align-items: center; gap: 0.3rem; }
+.truncated-warning { color: var(--warning-text); font-size: 0.85rem; margin-top: 0.5rem; padding: 0.5rem; background: var(--warning-bg); border-radius: 6px; }
+
+/* Input Area */
+.input-area { padding: 1.5rem; border-top: 1px solid var(--border-color); background-color: var(--bg-primary); }
+.input-container { max-width: 800px; margin: 0 auto; background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.input-container:focus-within { border-color: var(--accent); }
+.input-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-secondary); padding: 0 0.25rem; }
+textarea { width: 100%; background: transparent; border: none; color: var(--text-primary); font-size: 0.95rem; resize: none; outline: none; min-height: 24px; max-height: 200px; font-family: inherit; }
+.btn-send { background-color: var(--accent); color: white; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; align-self: flex-end; }
+.btn-send:disabled { background-color: var(--bg-tertiary); color: var(--text-secondary); cursor: not-allowed; }
+
+/* Loading */
+.typing-indicator { display: flex; gap: 4px; padding: 0.5rem 0; }
+.typing-indicator span { width: 8px; height: 8px; background-color: var(--text-secondary); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+@media (max-width: 768px) {
+.sidebar { position: absolute; height: 100%; transform: translateX(-100%); box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
+.sidebar.open { transform: translateX(0); }
+.warning-banner { display: none; }
+.chat-area { padding: 1rem; }
+.message { max-width: 95%; }
+}
 </style>
 </head>
 <body>
-<aside class="sidebar" id="sidebar"><div class="side-head"><button class="new-chat" id="newChat">＋ Nouvelle conversation</button></div><div class="history" id="history"></div></aside>
-<main class="main"><header class="top"><div class="top-left"><button class="toggle" id="toggle" aria-label="Afficher l'historique">☰</button><div><h1 class="brand">ARIANE</h1><div class="tags">Audit · IOB · IFH-TEC · V(t)</div></div></div><div class="warning">⚠️ Architecture de raisonnement en cours d'évaluation. Vérifiez les conclusions.</div></header>
-<section class="chat" id="chat" aria-live="polite"></section>
-<form class="input-area" id="form"><div class="input-box"><div class="meta"><span id="status"><i class="dot"></i>Moteur non testé</span><span>Entrée pour envoyer · Maj+Entrée pour un saut de ligne</span></div><textarea id="userInput" rows="1" placeholder="➤ Soumettez votre situation ou votre raisonnement à l'audit d'ARIANE…"></textarea><button class="send" id="send" type="submit">Envoyer ➤</button></div></form></main>
+
+<aside class="sidebar" id="sidebar">
+<div class="sidebar-header">
+<button class="btn-new-chat" onclick="createNewConversation()">＋ Nouvelle conversation</button>
+</div>
+<div class="history-list" id="historyList"></div>
+</aside>
+
+<main class="main-content">
+<header class="top-bar">
+<div class="top-bar-left">
+<button class="btn-toggle-sidebar" onclick="toggleSidebar()">☰</button>
+<div class="header-info">
+<h1>ARIANE</h1>
+<div class="tags">Audit · IOB · IFH-TEC · V(t)</div>
+</div>
+</div>
+<div class="warning-banner">⚠️ Architecture de raisonnement en cours d'évaluation. Vérifiez les conclusions.</div>
+</header>
+
+<div class="chat-area" id="chatArea"></div>
+
+<div class="input-area">
+<div class="input-container">
+<div class="input-meta">
+<span id="connectionStatus">🌐 Connecté à Internet</span>
+<span>Entrée pour envoyer, Maj+Entrée pour sauter une ligne</span>
+</div>
+<textarea id="userInput" rows="1" placeholder="➤ Soumettez votre situation ou votre raisonnement à l'audit d'ARIANE..."></textarea>
+<button class="btn-send" id="sendBtn" onclick="handleSend()">Envoyer ➤</button>
+</div>
+</div>
+</main>
+
 <script>
-"use strict";
-const API_URL="https://text.pollinations.ai/openai/chat/completions";
-const SYSTEM_PROMPT=`Tu es ARIANE, une architecture conceptuelle d'audit et de diagnostic systémique orientée vers le Bien, pas une IA autonome. Applique ARI v1.2 (Auto-Révision Itérative), IOB v1.0 et IFH-TEC Cycle 2.
-Distingue explicitement faits établis, déclarations attribuées, hypothèses, interprétations et conclusions. IOB est une orientation normative, pas une preuve.
-Pour les actualités, n'affirme pas que tu as fait une recherche Web si tu n'as pas réellement accès à des résultats. Donne des sources identifiables, dates et liens directs seulement quand ils sont disponibles. N'invente jamais des rapports, chiffres, variantes, lois, événements ou URL. Marque « non vérifié » toute affirmation que tu ne peux pas confirmer. Distingue date d'événement et date de publication. Un nom d'organisme sans référence précise ne valide pas une affirmation.
-Pour IFH-TEC, examine Cosmos/Environnement, Biologie/Vie, Social/Coopération et Conscience/Discernement. Ne classe pas une phase sans éléments suffisants.
-Pour V(t), examine D (dépendance), E (exposition), K (concentration des risques) et A_eff (adaptation effective). Ne calcule pas de score si les définitions, données et méthode ne sont pas explicites. Évite les pourcentages ou prévisions arbitraires.
-Pour les réponses longues, utilise des sections courtes et conclus complètement. Si tu atteins une limite, précise exactement ce qui reste à traiter.`;
-const CHAT_KEY="ariane_chats",CURRENT_KEY="ariane_current_chat",MAX_CONTEXT=24;
-function storageGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
-function loadChats(){try{const x=JSON.parse(storageGet(CHAT_KEY)||"[]");return Array.isArray(x)?x.filter(c=>c&&typeof c.id==="string"&&Array.isArray(c.messages)).map(c=>({id:c.id,title:String(c.title||"Nouvelle conversation"),messages:c.messages.filter(m=>m&&["user","assistant"].includes(m.role)&&typeof m.content==="string").map(m=>({role:m.role,content:m.content,responseTime:m.responseTime,truncated:!!m.truncated}))})):[]}catch(e){return []}}
-let chats=loadChats(),currentId=storageGet(CURRENT_KEY),busy=false,requestId=0;
-if(!chats.length){chats=[newChatObject()];currentId=chats[0].id}
-if(!chats.some(c=>c.id===currentId))currentId=chats[0].id;
-function newChatObject(){return{id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),title:"Nouvelle conversation",messages:[]}}
-function save(){try{localStorage.setItem(CHAT_KEY,JSON.stringify(chats));localStorage.setItem(CURRENT_KEY,currentId);return true}catch(e){statusSet("bad","Stockage indisponible : historique non sauvegardé");return false}}
-function current(){return chats.find(c=>c.id===currentId)||null}
-function statusSet(state,text){const s=document.getElementById("status");s.replaceChildren();const d=document.createElement("i");d.className="dot "+(state==="ok"?"ok":state==="bad"?"bad":"");s.append(d,document.createTextNode(text))}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function format(s){return esc(s).replace(/\*\*(.+?)\*\*/gs,"<strong>$1</strong>").replace(/`([^`\\n]+)`/g,"<code>$1</code>").replace(/\\n/g,"<br>")}
-function action(label,fn,cls=""){const b=document.createElement("button");b.type="button";b.className="action "+cls;b.textContent=label;b.addEventListener("click",fn);return b}
-function renderHistory(){const el=document.getElementById("history");el.replaceChildren();chats.forEach(c=>{const row=document.createElement("div");row.className="history-row"+(c.id===currentId?" active":"");const name=document.createElement("button");name.className="history-name";name.textContent=c.title;name.addEventListener("click",()=>switchChat(c.id));const del=document.createElement("button");del.className="delete-chat";del.textContent="🗑️";del.title="Supprimer";del.addEventListener("click",()=>deleteChat(c.id));row.append(name,del);el.append(row)})}
-function render(){const el=document.getElementById("chat"),c=current();el.replaceChildren();if(!c)return;if(!c.messages.length){const w=document.createElement("div");w.className="welcome";w.innerHTML='<div class="logo">Λ</div><h2>Intelligence d’audit et de diagnostic systémique</h2><p>ARIANE distingue faits, hypothèses et conclusions.<br>La connexion au moteur sera testée lors de l’envoi.</p>';el.append(w);return}c.messages.forEach((m,i)=>{const article=document.createElement("article");article.className="message "+(m.role==="user"?"user":"ai");const head=document.createElement("div");head.className="msg-head";head.textContent=m.role==="user"?"Vous":"Λ ARIANE";const bubble=document.createElement("div");bubble.className="bubble";bubble.id="bubble-"+i;bubble.innerHTML=format(m.content);article.append(head,bubble);if(m.truncated){const warn=document.createElement("div");warn.className="truncated";warn.textContent="⚠️ Réponse probablement incomplète. Vous pouvez demander une suite.";article.append(warn)}const actions=document.createElement("div");actions.className="actions";if(m.role==="user")actions.append(action("✏️ Modifier",()=>edit(i)));else{const t=document.createElement("span");t.className="timer";t.textContent=m.responseTime?"⏱ "+m.responseTime+" s":"";actions.append(t,action("📋 Copier",()=>copy(i)),action("🔄 Réessayer",()=>retry(i)));if(m.truncated)actions.append(action("➡️ Continuer",()=>continueReply(i),"continue"))}article.append(actions);el.append(article)});el.scrollTop=el.scrollHeight}
-function newChat(){const c=newChatObject();chats.unshift(c);currentId=c.id;save();renderHistory();render();closeSide()}
-function switchChat(id){if(!chats.some(c=>c.id===id))return;currentId=id;save();renderHistory();render();closeSide()}
-function deleteChat(id){if(!confirm("Supprimer cette conversation de l’historique local ?"))return;chats=chats.filter(c=>c.id!==id);if(currentId===id)currentId=chats[0]?.id||null;if(!currentId){const c=newChatObject();chats=[c];currentId=c.id}save();renderHistory();render()}
-function closeSide(){if(innerWidth<=768)document.getElementById("sidebar").classList.remove("open")}
-function toggleSide(){const s=document.getElementById("sidebar");if(innerWidth<=768)s.classList.toggle("open");else s.classList.toggle("collapsed")}
-function loading(show){document.getElementById("loading")?.remove();if(!show)return;const a=document.createElement("article");a.className="message ai";a.id="loading";a.innerHTML='<div class="msg-head">Λ ARIANE</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>';document.getElementById("chat").append(a);a.scrollIntoView({block:"end"})}
-function apiHistory(c,lastIndex){return[{role:"system",content:SYSTEM_PROMPT},...c.messages.slice(0,lastIndex+1).slice(-MAX_CONTEXT).map(m=>({role:m.role,content:m.content}))]}
-async function ask({chatId,userIndex,replaceIndex=null,continueIndex=null}){if(busy)return;const c=chats.find(x=>x.id===chatId);if(!c)return;busy=true;const id=++requestId,send=document.getElementById("send");send.disabled=true;loading(true);statusSet("","Connexion au moteur en cours…");const started=Date.now();try{let messages;if(continueIndex!==null){const a=c.messages[continueIndex],u=c.messages.slice(0,continueIndex).reverse().find(m=>m.role==="user");if(!a||!u)throw Error("Question précédente introuvable");messages=[{role:"system",content:SYSTEM_PROMPT},{role:"user",content:u.content},{role:"assistant",content:a.content},{role:"user",content:"Continue exactement à partir de la fin de ta réponse, sans répéter. Termine proprement."}]}else messages=apiHistory(c,userIndex);const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);let response;try{response=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({model:"openai",messages,max_tokens:6000,seed:Math.floor(Math.random()*1e6)}),signal:controller.signal})}finally{clearTimeout(timer)}if(!response.ok){const detail=(await response.text().catch(()=>"")).slice(0,300);throw Error("HTTP "+response.status+(detail?" — "+detail:""))}const data=await response.json(),choice=data?.choices?.[0],content=choice?.message?.content;if(typeof content!=="string"||!content.trim())throw Error("Réponse vide ou format inattendu du fournisseur");if(id!==requestId)return;const secs=((Date.now()-started)/1000).toFixed(1),truncated=choice.finish_reason==="length";if(continueIndex!==null){c.messages[continueIndex].content=c.messages[continueIndex].content.trimEnd()+"\\n\\n"+content.trim();c.messages[continueIndex].truncated=truncated;c.messages[continueIndex].responseTime=secs}else if(replaceIndex!==null)c.messages[replaceIndex]={role:"assistant",content:content.trim(),responseTime:secs,truncated};else c.messages.push({role:"assistant",content:content.trim(),responseTime:secs,truncated});save();statusSet("ok","Réponse reçue · recherche Web non confirmée")}catch(e){if(id===requestId){const msg=e.name==="AbortError"?"Délai dépassé après 90 secondes.":e.message||"Erreur inconnue";c.messages.push({role:"assistant",content:"⚠️ Impossible d’obtenir une réponse du moteur d’IA.\\n\\nDétail : "+msg+"\\n\\nAucune conclusion n’a été produite. Vous pouvez réessayer.",responseTime:((Date.now()-started)/1000).toFixed(1),truncated:false});save();statusSet("bad","Échec de la requête au moteur")}}finally{if(id===requestId){loading(false);busy=false;send.disabled=false;renderHistory();render()}}}
-async function sendMessage(e){e?.preventDefault();if(busy)return;const input=document.getElementById("userInput"),text=input.value.trim(),c=current();if(!text||!c)return;if(!c.messages.length){c.title=text.replace(/\\s+/g," ").slice(0,42)+(text.length>42?"…":"");renderHistory()}c.messages.push({role:"user",content:text});save();input.value="";input.style.height="auto";render();await ask({chatId:c.id,userIndex:c.messages.length-1})}
-function edit(i){if(busy)return;const c=current(),m=c?.messages[i],b=document.getElementById("bubble-"+i);if(!m||m.role!=="user"||!b)return;b.replaceChildren();const ta=document.createElement("textarea");ta.className="edit";ta.id="edit-"+i;ta.value=m.content;const row=document.createElement("div");row.className="actions";row.append(action("💾 Sauvegarder et régénérer",()=>saveEdit(i),"continue"),action("Annuler",render));b.append(ta,row);ta.focus()}
-async function saveEdit(i){if(busy)return;const c=current(),text=document.getElementById("edit-"+i)?.value.trim();if(!c||!text||c.messages[i]?.role!=="user")return;c.messages[i].content=text;c.messages=c.messages.slice(0,i+1);save();render();await ask({chatId:c.id,userIndex:i})}
-async function retry(i){if(busy)return;const c=current();if(!c||c.messages[i]?.role!=="assistant")return;let u=i-1;while(u>=0&&c.messages[u].role!=="user")u--;if(u<0)return;c.messages=c.messages.slice(0,i);save();render();await ask({chatId:c.id,userIndex:u})}
-async function continueReply(i){if(busy)return;const c=current();if(c?.messages[i]?.role!=="assistant")return;await ask({chatId:c.id,userIndex:i,continueIndex:i})}
-async function copy(i){const text=current()?.messages[i]?.content;if(typeof text!=="string")return;try{if(navigator.clipboard&&isSecureContext)await navigator.clipboard.writeText(text);else{const t=document.createElement("textarea");t.value=text;t.style.position="fixed";document.body.append(t);t.select();if(!document.execCommand("copy"))throw Error();t.remove()}statusSet("ok","Texte copié")}catch(e){prompt("Copiez le texte :",text)}}
-document.getElementById("newChat").addEventListener("click",newChat);document.getElementById("toggle").addEventListener("click",toggleSide);document.getElementById("form").addEventListener("submit",sendMessage);const input=document.getElementById("userInput");input.addEventListener("input",()=>{input.style.height="auto";input.style.height=Math.min(input.scrollHeight,180)+"px"});input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();sendMessage(e)}});
-renderHistory();render();statusSet("","Moteur non testé — envoyez un message pour vérifier");
+// --- 1. CONFIGURATION & SYSTÈME ARIANE ---
+const SYSTEM_PROMPT = `Tu es ARIANE, une intelligence d'audit et de diagnostic systémique orientée vers le bien.
+Tu dois STRICTEMENT appliquer les 4 fondements suivants dans tes réponses :
+1. ARI (Audit et Révision) : Distingue clairement les FAITS établis, les HYPOTHÈSES, les INTERPRÉTATIONS et les CONCLUSIONS. Vérifie si les preuves soutiennent les conclusions. Proportionne ton degré de certitude à la qualité des preuves.
+2. IOB (Intelligence Orientée vers le Bien) : Ton principe directeur est d'améliorer les moyens pour réduire la souffrance évitable et développer les conditions favorables. Ne confonds pas "bénéfique" et "vrai", mais utilise cela comme boussole normative.
+3. IFH-TEC : Analyse les systèmes complexes selon 4 dimensions : Cosmos/Environnement, Biologie/Vie, Social/Coopération, Conscience/Discernement. Identifie les dépendances et vulnérabilités.
+4. V(t) (Vulnérabilité Systémique) : Évalue la dépendance (D), l'exposition (E), la concentration des risques (K) et l'adaptation effective (A_eff).
+
+Format de réponse attendu :
+- 📌 FAITS ÉTABLIS
+- 🔍 HYPOTHÈSES & INTERPRÉTATIONS
+- ⚙️ ANALYSE SYSTÉMIQUE (IFH-TEC & V(t))
+- 🎯 ORIENTATION IOB (Réduction de la souffrance évitable)
+- ⚖️ CONCLUSION & CONDITIONS DE RÉVISION
+
+Reste rigoureux, factuel, et n'hésite pas à souligner les limites de l'analyse.`;
+
+const API_URL = "https://text.pollinations.ai/openai/chat/completions";
+
+// --- 2. GESTION DES DONNÉES (LocalStorage avec protection) ---
+let conversations = JSON.parse(localStorage.getItem('ariane_chats')) || [];
+let currentChatId = localStorage.getItem('ariane_current_chat') || null;
+
+if (conversations.length === 0) {
+createNewConversation(false);
+} else if (!currentChatId || !conversations.find(c => c.id === currentChatId)) {
+currentChatId = conversations[0].id;
+}
+
+function saveData() {
+try {
+localStorage.setItem('ariane_chats', JSON.stringify(conversations));
+localStorage.setItem('ariane_current_chat', currentChatId);
+} catch (e) {
+if (e.name === 'QuotaExceededError' || e.code === 22) {
+console.warn('localStorage plein, suppression des anciennes conversations');
+// Supprimer les 50% les plus anciennes
+conversations = conversations.slice(0, Math.floor(conversations.length / 2));
+try {
+localStorage.setItem('ariane_chats', JSON.stringify(conversations));
+} catch (e2) {
+console.error('Impossible de sauvegarder même après nettoyage');
+}
+}
+}
+}
+
+function getCurrentChat() {
+return conversations.find(c => c.id === currentChatId);
+}
+
+// --- 3. GESTION DE L'INTERFACE ---
+function renderSidebar() {
+const list = document.getElementById('historyList');
+list.innerHTML = '';
+conversations.forEach(chat => {
+const div = document.createElement('div');
+div.className = history-item ${chat.id === currentChatId ? 'active' : ''}; div.innerHTML =
+<span class="history-item-title" onclick="switchChat('${chat.id}')"&gt;${chat.title || 'Nouvelle conversation'}</span>
+<button class="btn-delete-chat" onclick="deleteChat('${chat.id}', event)" title="Supprimer"&gt;🗑️&lt;/button&gt;;
+list.appendChild(div);
+});
+}
+
+function renderChat() {
+const chat = getCurrentChat();
+const area = document.getElementById('chatArea');
+area.innerHTML = '';
+
+if (chat.messages.length === 0) {
+area.innerHTML = &lt;div class="welcome-message"&gt; &lt;div class="logo"&gt;Λ&lt;/div&gt; &lt;h2&gt;Intelligence d'audit et de diagnostic systémique&lt;/h2&gt; &lt;p style="margin-top: 1rem; max-width: 500px; margin-left: auto; margin-right: auto;"&gt; ARIANE distingue faits, hypothèses et conclusions.&lt;br&gt; Connectée à Internet. Prête à auditer vos raisonnements. &lt;/p&gt; &lt;/div>;
+return;
+}
+
+chat.messages.forEach((msg, index) => {
+const msgDiv = document.createElement('div');
+msgDiv.className = message ${msg.role === 'assistant' ? 'ai' : msg.role}`;
+
+let actionsHtml = '';
+if (msg.role === 'user') {
+actionsHtml = <button class="btn-action" onclick="editMessage(${index})">✏️ Modifier</button>; } else { const timerText = msg.responseTime ?⏱ ${msg.responseTime}s : '';
+const isTruncated = msg.truncated === true;
+
+actionsHtml = &lt;span class="timer-badge"&gt;${timerText}</span>
+<button class="btn-action" onclick="copyMessage( {index})">🔄 Réessayer</button>
+latex
+{isTruncated ? `<button class="btn-action btn-continue" onclick="continueMessage(
+
+{index})">➡️ Continuer</button>: ''};
+}
+
+const truncatedWarning = msg.truncated ?
+<div class="truncated-warning"&gt;⚠️ Réponse tronquée (limite de tokens atteinte). Cliquez sur "Continuer" pour la suite.&lt;/div> : '';
+
+msgDiv.innerHTML = &lt;div class="message-header"&gt; &lt;strong&gt;${msg.role === 'user' ? 'Vous' : 'Λ ARIANE'}</strong>
+</div>
+<div class="message-bubble" id="msg-content-${index}"&gt;${formatText(msg.content)}</div>
+${truncatedWarning} &lt;div class="message-actions"&gt;${actionsHtml}</div>
+`;
+area.appendChild(msgDiv);
+});
+area.scrollTop = area.scrollHeight;
+}
+
+function formatText(text) {
+return text.replace(/\n/g, '<br>').replace(/**(.*?)**/g, '<strong>`$1</strong>');
+}
+
+// --- 4. LOGIQUE DE CONVERSATION ---
+function createNewConversation(render = true) {
+const newChat = {
+id: Date.now().toString(),
+title: 'Nouvelle conversation',
+messages: []
+};
+conversations.unshift(newChat);
+currentChatId = newChat.id;
+saveData();
+if (render) {
+renderSidebar();
+renderChat();
+if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+}
+}
+
+function switchChat(id) {
+currentChatId = id;
+saveData();
+renderSidebar();
+renderChat();
+if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+}
+
+function deleteChat(id, event) {
+event.stopPropagation();
+if (!confirm("Supprimer cette conversation de l'historique ?")) return;
+conversations = conversations.filter(c => c.id !== id);
+if (currentChatId === id) {
+currentChatId = conversations.length > 0 ? conversations[0].id : null;
+if (!currentChatId) createNewConversation(false);
+}
+saveData();
+renderSidebar();
+renderChat();
+}
+
+// --- 5. ENVOI ET API INTERNET ---
+async function handleSend() {
+const input = document.getElementById('userInput');
+const text = input.value.trim();
+if (!text) return;
+
+const chat = getCurrentChat();
+if (chat.messages.length === 0) {
+chat.title = text.substring(0, 30) + (text.length > 30 ? '...' : '');
+saveData();
+renderSidebar();
+}
+
+chat.messages.push({ role: 'user', content: text });
+saveData();
+renderChat();
+
+input.value = '';
+input.style.height = 'auto';
+
+await generateAIResponse();
+}
+
+async function generateAIResponse(retryIndex = null, continueFrom = null) {
+const chat = getCurrentChat();
+const area = document.getElementById('chatArea');
+const sendBtn = document.getElementById('sendBtn');
+sendBtn.disabled = true;
+
+const loadingDiv = document.createElement('div');
+loadingDiv.className = 'message ai';
+loadingDiv.id = 'loading-msg';
+loadingDiv.innerHTML = &lt;div class="message-header"&gt;&lt;strong&gt;Λ ARIANE&lt;/strong&gt;&lt;/div&gt; &lt;div class="message-bubble"&gt; &lt;div class="typing-indicator"&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt; &lt;/div&gt;;
+area.appendChild(loadingDiv);
+area.scrollTop = area.scrollHeight;
+
+const startTime = Date.now();
+
+const apiMessages = [{ role: 'system', content: SYSTEM_PROMPT }];
+
+// Si on continue une réponse tronquée
+if (continueFrom !== null) {
+const lastUserMsg = chat.messages[continueFrom - 1];
+const truncatedMsg = chat.messages[continueFrom];
+apiMessages.push({ role: 'user', content: lastUserMsg.content });
+apiMessages.push({ role: 'assistant', content: truncatedMsg.content });
+apiMessages.push({ role: 'user', content: 'Continue exactement là où tu t'es arrêté dans ta réponse précédente, sans répéter ce qui a déjà été dit.' });
+} else {
+// Requête normale
+const limit = retryIndex !== null ? retryIndex : chat.messages.length;
+for (let i = 0; i < limit; i++) {
+apiMessages.push({ role: chat.messages[i].role, content: chat.messages[i].content });
+}
+}
+
+try {
+const response = await fetch(API_URL, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+model: "openai",
+messages: apiMessages,
+max_tokens: 16000, // ← CORRECTION : permet des réponses très longues
+seed: Math.floor(Math.random() * 10000)
+})
+});
+
+if (!response.ok) throw new Error("Erreur de connexion à l'API");
+
+const data = await response.json();
+const aiText = data.choices[0].message.content;
+const finishReason = data.choices[0].finish_reason;
+const responseTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+// Détection du tronquage
+const isTruncated = finishReason === 'length';
+
+document.getElementById('loading-msg').remove();
+
+if (continueFrom !== null) {
+// Ajouter la suite à la réponse tronquée
+chat.messages[continueFrom].content += '\n\n' + aiText;
+chat.messages[continueFrom].truncated = isTruncated;
+chat.messages[continueFrom].responseTime = ((Date.now() - startTime) / 1000).toFixed(1);
+} else if (retryIndex !== null) {
+chat.messages[retryIndex] = {
+role: 'assistant',
+content: aiText,
+responseTime: responseTime,
+truncated: isTruncated
+};
+} else {
+chat.messages.push({
+role: 'assistant',
+content: aiText,
+responseTime: responseTime,
+truncated: isTruncated
+});
+}
+
+saveData();
+renderChat();
+
+} catch (error) {
+document.getElementById('loading-msg').remove();
+const errorDiv = document.createElement('div');
+errorDiv.className = 'message ai';
+errorDiv.innerHTML = &lt;div class="message-header"&gt;&lt;strong&gt;⚠️ Erreur&lt;/strong&gt;&lt;/div&gt; &lt;div class="message-bubble" style="border-color: var(--danger); color: var(--danger);"&gt; Impossible de contacter le moteur d'IA. Vérifiez votre connexion Internet.&lt;br&gt; &lt;small&gt;${error.message}</small>
+</div>
+<div class="message-actions">
+<button class="btn-action" onclick="retryMessage(${chat.messages.length})"&gt;🔄 Réessayer&lt;/button&gt; &lt;/div&gt;;
+area.appendChild(errorDiv);
+} finally {
+sendBtn.disabled = false;
+}
+}
+
+// --- 6. ACTIONS SUR LES MESSAGES ---
+function editMessage(index) {
+const chat = getCurrentChat();
+const msg = chat.messages[index];
+const bubble = document.getElementById(msg-content-${index}`);
+
+bubble.innerHTML = &lt;textarea class="edit-textarea" id="edit-area-${index}" rows="3"> {index})">💾 Sauvegarder & Régénérer</button>
+<button class="btn-action" onclick="renderChat()">Annuler</button>
+</div>
+; document.getElementById(edit-area-${index}).focus();
+}
+
+function saveEdit(index) {
+const chat = getCurrentChat();
+const newText = document.getElementById(edit-area-${index}`).value.trim();
+if (!newText) return;
+
+chat.messages[index].content = newText;
+chat.messages = chat.messages.slice(0, index + 1);
+saveData();
+renderChat();
+generateAIResponse(index);
+}
+
+function retryMessage(index) {
+const chat = getCurrentChat();
+const userMsgIndex = index - 1;
+chat.messages.splice(index, 1);
+saveData();
+renderChat();
+generateAIResponse(userMsgIndex);
+}
+
+function continueMessage(index) {
+generateAIResponse(null, index);
+}
+
+function copyMessage(index) {
+const chat = getCurrentChat();
+const textToCopy = chat.messages[index].content;
+
+if (navigator.clipboard && window.isSecureContext) {
+navigator.clipboard.writeText(textToCopy).then(() => {
+showCopyFeedback(index);
+}).catch(err => {
+console.error('Erreur clipboard moderne:', err);
+fallbackCopyText(textToCopy, index);
+});
+} else {
+fallbackCopyText(textToCopy, index);
+}
+}
+
+function fallbackCopyText(text, index) {
+const textArea = document.createElement("textarea");
+textArea.value = text;
+textArea.style.position = "fixed";
+document.body.appendChild(textArea);
+textArea.focus();
+textArea.select();
+try {
+document.execCommand('copy');
+showCopyFeedback(index);
+} catch (err) {
+console.error('Fallback: Oops, unable to copy', err);
+alert("Impossible de copier automatiquement. Veuillez sélectionner le texte manuellement.");
+}
+document.body.removeChild(textArea);
+}
+
+function showCopyFeedback(index) {
+const msgElements = document.querySelectorAll('.message');
+if (msgElements[index]) {
+const btn = msgElements[index].querySelector('button[onclick^="copyMessage"]');
+if (btn) {
+const originalHTML = btn.innerHTML;
+btn.innerHTML = '✅ Copié !';
+setTimeout(() => {
+btn.innerHTML = originalHTML;
+}, 2000);
+}
+}
+}
+
+// --- 7. UTILITAIRES ---
+function toggleSidebar() {
+const sb = document.getElementById('sidebar');
+if (window.innerWidth <= 768) { sb.classList.toggle('open'); }
+else { sb.classList.toggle('collapsed'); }
+}
+
+const textarea = document.getElementById('userInput');
+textarea.addEventListener('input', function() {
+this.style.height = 'auto';
+this.style.height = (this.scrollHeight) + 'px';
+});
+textarea.addEventListener('keydown', function(e) {
+if (e.key === 'Enter' && !e.shiftKey) {
+e.preventDefault();
+handleSend();
+}
+});
+
+// Initialisation
+renderSidebar();
+renderChat();
 </script>
 </body>
 </html>
