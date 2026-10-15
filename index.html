@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARIANE — Intelligence d'audit et de diagnostic systémique</title>
+  <meta name="description" content="ARIANE : architecture de raisonnement orientée vers le Bien. Audit logique, diagnostic systémique, réduction de la souffrance évitable." />
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --bg-secondary: #111827;
+      --bg-tertiary: #1a2234;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --sidebar-width: 280px;
+      --radius: 12px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+    }
+
+    /* ========== SIDEBAR ========== */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s ease, width 0.25s ease;
+      z-index: 50;
+      flex-shrink: 0;
+    }
+
+    .sidebar.closed {
+      transform: translateX(calc(-1 * var(--sidebar-width)));
+      width: 0;
+      border: none;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      flex: 1;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      padding: 8px;
+    }
+    .btn-ghost:hover { background: var(--bg-tertiary); color: var(--text); }
+
+    .btn-icon {
+      background: transparent;
+      color: var(--text-muted);
+      padding: 6px;
+      border-radius: 6px;
+    }
+    .btn-icon:hover { background: var(--bg-tertiary); color: var(--text); }
+
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .history-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      transition: background 0.15s;
+    }
+    .history-item:hover { background: var(--bg-tertiary); color: var(--text); }
+    .history-item.active { background: var(--bg-tertiary); color: var(--text); }
+
+    .history-item .title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-item .delete {
+      opacity: 0;
+      color: var(--danger);
+      font-size: 16px;
+      padding: 2px 6px;
+    }
+    .history-item:hover .delete { opacity: 1; }
+
+    /* ========== MAIN ========== */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      position: relative;
+    }
+
+    .topbar {
+      height: 56px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo span { color: var(--accent); }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+
+    .badge {
+      margin-left: auto;
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* ========== CHAT ========== */
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 16px 120px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--text-muted);
+      gap: 12px;
+      padding: 40px;
+    }
+    .empty-state .icon {
+      font-size: 48px;
+      opacity: 0.4;
+      margin-bottom: 8px;
+    }
+    .empty-state h2 {
+      font-size: 22px;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .empty-state p {
+      max-width: 420px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .message {
+      max-width: 780px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .message.user {
+      align-items: flex-end;
+    }
+    .message.assistant {
+      align-items: flex-start;
+    }
+
+    .bubble {
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      line-height: 1.55;
+      font-size: 15px;
+      position: relative;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .message.user .bubble {
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.assistant .bubble {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-actions {
+      display: flex;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity 0.15s;
+      padding: 0 4px;
+    }
+    .message:hover .message-actions { opacity: 1; }
+
+    .message.user .message-actions { justify-content: flex-end; }
+
+    .action-btn {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .action-btn:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .timer {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 0 4px;
+    }
+
+    .typing {
+      display: flex;
+      gap: 4px;
+      padding: 12px 18px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: fit-content;
+    }
+    .typing span {
+      width: 6px;
+      height: 6px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-4px); }
+    }
+
+    /* ========== INPUT ========== */
+    .input-area {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 16px;
+      background: linear-gradient(to top, var(--bg) 70%, transparent);
+    }
+
+    .input-wrapper {
+      max-width: 780px;
+      margin: 0 auto;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      box-shadow: var(--shadow);
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--accent);
+    }
+
+    #userInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 15px;
+      resize: none;
+      max-height: 160px;
+      line-height: 1.45;
+      outline: none;
+      font-family: inherit;
+    }
+
+    #userInput::placeholder { color: var(--text-muted); }
+
+    .send-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .send-btn:hover { background: var(--accent-hover); }
+    .send-btn:disabled {
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    .status-bar {
+      max-width: 780px;
+      margin: 8px auto 0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 0 4px;
+    }
+
+    /* ========== EDIT MODE ========== */
+    .edit-area {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .edit-area textarea {
+      width: 100%;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--accent);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+    }
+    .edit-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: absolute;
+        height: 100%;
+        box-shadow: var(--shadow);
+      }
+      .sidebar.closed {
+        transform: translateX(-100%);
+      }
+      .badge { display: none; }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <button class="btn btn-primary" onclick="newConversation()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Nouvelle conversation
+      </button>
+      <button class="btn btn-ghost" onclick="toggleSidebar()" title="Fermer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <button class="btn-icon" onclick="toggleSidebar()" title="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <div class="logo">
+        <span>Λ</span> ARIANE
+        <span class="subtitle">Audit · IOB · IFH-TEC · V(t)</span>
+      </div>
+      <div class="badge">⚠️ Architecture en cours d'évaluation</div>
+    </div>
+
+    <div class="chat-area" id="chatArea"></div>
+
+    <div class="input-area">
+      <div class="input-wrapper">
+        <textarea id="userInput" rows="1" placeholder="Soumettez votre situation ou votre raisonnement à l'audit d'ARIANE..." onkeydown="handleKey(event)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Envoyer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+      <div class="status-bar">
+        <span>🌐 Connecté à Internet (gratuit & illimité)</span>
+        <span>Entrée pour envoyer · Maj+Entrée pour nouvelle ligne</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== SYSTEM PROMPT (méthodologie complète) ====================
+    const SYSTEM_PROMPT = `Tu es ARIANE, une architecture de raisonnement conçue pour analyser des situations complexes, contrôler la solidité des conclusions et organiser la révision des erreurs.
+
+OBJECTIF
+Améliorer la qualité des analyses en distinguant clairement les faits, les hypothèses, les interprétations et les conclusions. Identifier les vulnérabilités des systèmes, comprendre leurs évolutions et examiner les moyens de réduire la souffrance évitable.
+
+Tu associes quatre fondements complémentaires :
+
+1. ARI — AUDIT ET RÉVISION DU RAISONNEMENT
+- Distingue les faits établis des hypothèses et des interprétations.
+- Vérifie si les preuves soutiennent réellement les conclusions.
+- Repère les contradictions et les omissions.
+- Différencie une absence de preuve d'une preuve d'absence.
+- Distingue la réfutation d'une hypothèse de la démonstration d'une autre.
+- Proportionne le degré de certitude à la qualité des preuves.
+- Précise les conditions qui justifieraient une révision.
+- Applique ces contrôles à tes propres analyses. Reconnais tes erreurs et corrige-les.
+
+2. IOB — INTELLIGENCE ORIENTÉE VERS LE BIEN
+Principe directeur : « Améliorer continuellement les moyens pour réduire la souffrance évitable et développer les conditions favorables. »
+- Examine les conséquences humaines des événements, les dommages évitables et les possibilités d'amélioration.
+- Une affirmation ne devient pas vraie simplement parce qu'elle semble bénéfique.
+- Les faits, les preuves et les conséquences des décisions doivent être examinés séparément.
+
+3. IFH-TEC — ANALYSE DES SYSTÈMES COMPLEXES
+Examine les conditions favorables ou défavorables à la formation et à la stabilité des systèmes selon quatre dimensions :
+- Cosmos / Environnement
+- Biologie / Protection de la vie
+- Social / Coopération
+- Conscience / Qualité du discernement
+Relie les causes techniques, humaines, organisationnelles et institutionnelles plutôt que de réduire une situation à une cause unique.
+
+4. V(t) — VULNÉRABILITÉ SYSTÉMIQUE
+Formule candidate :
+Vs(t) = [D(t) + E(t) + K(t)] / 3
+V(t) = Vs(t) × [1 − A_eff(t)]
+où D = dépendance, E = exposition, K = concentration des risques / manque de redondance, A_eff = adaptation effective.
+Cette formule reste un modèle candidat. Indique clairement son statut méthodologique.
+
+STRUCTURE OBLIGATOIRE DE TES RÉPONSES
+Tu dois toujours structurer tes réponses de la façon suivante (utilise ces titres exacts) :
+
+📌 FAITS ÉTABLIS
+(uniquement ce qui est vérifiable et solidement étayé)
+
+🔍 HYPOTHÈSES & INTERPRÉTATIONS
+(ce qui est plausible mais non démontré, et ton interprétation)
+
+⚙️ ANALYSE SYSTÉMIQUE (IFH-TEC & V(t))
+(applique les quatre dimensions et, si pertinent, évalue D, E, K, A_eff et V(t))
+
+🎯 ORIENTATION IOB (Réduction de la souffrance évitable)
+(recommandations orientées vers la réduction de la souffrance évitable et le développement des conditions favorables)
+
+⚖️ CONCLUSION & CONDITIONS DE RÉVISION
+(conclusion claire + conditions qui justifieraient une révision de cette conclusion)
+
+Limites : indique toujours les limites de ton analyse.
+
+AVERTISSEMENT IMPORTANT
+Tu es une architecture conceptuelle et méthodologique en cours d'évaluation. Ta supériorité n'est pas démontrée. Ne te présente jamais comme une intelligence artificielle autonome déjà validée. Lorsque tu n'as pas de preuve, dis-le clairement. N'invente jamais de sources, de chiffres ou de rapports. Si tu dois formuler une hypothèse, range-la explicitement dans la section correspondante.
+
+Tu as accès à Internet. Utilise-le pour vérifier les faits lorsque c'est pertinent.
+
+RÈGLES DE SORTIE STRICTES :
+- Commence TOUJOURS directement par "📌 FAITS ÉTABLIS".
+- N'écris JAMAIS de raisonnement interne, de monologue, de "We need to", "Let's", "Ok.", de JSON ou de tool_calls.
+- Ne montre jamais ton processus de réflexion.
+- Réponds uniquement avec la structure demandée.`;
+
+    // ==================== STATE ====================
+    let conversations = JSON.parse(localStorage.getItem('ariane_conversations') || '[]');
+    let currentId = null;
+    let isGenerating = false;
+
+    // ==================== INIT ====================
+    function init() {
+      renderHistory();
+      if (conversations.length > 0) {
+        loadConversation(conversations[0].id);
+      } else {
+        newConversation();
+      }
+      autoResize();
+    }
+
+    function autoResize() {
+      const ta = document.getElementById('userInput');
+      ta.addEventListener('input', () => {
+        ta.style.height = 'auto';
+        ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+      });
+    }
+
+    // ==================== SIDEBAR ====================
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('closed');
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
+      conversations.forEach(conv => {
+        const item = document.createElement('div');
+        item.className = 'history-item' + (conv.id === currentId ? ' active' : '');
+        item.innerHTML = `
+          <span class="title" onclick="loadConversation('${conv.id}')">${escapeHtml(conv.title || 'Nouvelle conversation')}</span>
+          <span class="delete" onclick="event.stopPropagation(); deleteConversation('${conv.id}')" title="Supprimer">×</span>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function newConversation() {
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      const conv = { id, title: 'Nouvelle conversation', messages: [], created: Date.now() };
+      conversations.unshift(conv);
+      save();
+      loadConversation(id);
+    }
+
+    function loadConversation(id) {
+      currentId = id;
+      const conv = conversations.find(c => c.id === id);
+      if (!conv) return;
+      renderHistory();
+      renderMessages(conv.messages);
+    }
+
+    function deleteConversation(id) {
+      conversations = conversations.filter(c => c.id !== id);
+      save();
+      if (currentId === id) {
+        if (conversations.length > 0) loadConversation(conversations[0].id);
+        else newConversation();
+      } else {
+        renderHistory();
+      }
+    }
+
+    function save() {
+      localStorage.setItem('ariane_conversations', JSON.stringify(conversations));
+    }
+
+    // ==================== RENDER ====================
+    function renderMessages(messages) {
+      const area = document.getElementById('chatArea');
+      area.innerHTML = '';
+
+      if (messages.length === 0) {
+        area.innerHTML = `
+          <div class="empty-state" id="emptyState">
+            <div class="icon">Λ</div>
+            <h2>Intelligence d'audit et de diagnostic systémique</h2>
+            <p>ARIANE distingue faits, hypothèses et conclusions.<br>Orientée vers la réduction de la souffrance évitable.<br>Connectée à Internet. Prête à auditer vos raisonnements.</p>
+          </div>
+        `;
+        return;
+      }
+
+      messages.forEach((msg, idx) => {
+        area.appendChild(createMessageElement(msg, idx));
+      });
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function createMessageElement(msg, idx) {
+      const div = document.createElement('div');
+      div.className = 'message ' + msg.role;
+      div.dataset.idx = idx;
+
+      if (msg.role === 'user') {
+        div.innerHTML = `
+          <div class="bubble">${escapeHtml(msg.content)}</div>
+          <div class="message-actions">
+            <button class="action-btn" onclick="editMessage(${idx})">✏️ Modifier</button>
+          </div>
+        `;
+      } else {
+        const timeStr = msg.duration ? `⏱ ${(msg.duration / 1000).toFixed(1)}s` : '';
+        div.innerHTML = `
+          <div class="bubble">${formatMarkdown(msg.content)}</div>
+          <div class="message-actions">
+            <span class="timer">${timeStr}</span>
+            <button class="action-btn" onclick="copyMessage(${idx})">📋 Copier</button>
+            <button class="action-btn" onclick="retryMessage(${idx})">🔄 Réessayer</button>
+          </div>
+        `;
+      }
+      return div;
+    }
+
+    function formatMarkdown(text) {
+      // Simple formatting for the structured response
+      return escapeHtml(text)
+        .replace(/📌 FAITS ÉTABLIS/g, '<strong style="color:#22c55e">📌 FAITS ÉTABLIS</strong>')
+        .replace(/🔍 HYPOTHÈSES & INTERPRÉTATIONS/g, '<strong style="color:#3b82f6">🔍 HYPOTHÈSES & INTERPRÉTATIONS</strong>')
+        .replace(/⚙️ ANALYSE SYSTÉMIQUE \(IFH-TEC & V\(t\)\)/g, '<strong style="color:#a855f7">⚙️ ANALYSE SYSTÉMIQUE (IFH-TEC & V(t))</strong>')
+        .replace(/🎯 ORIENTATION IOB \(Réduction de la souffrance évitable\)/g, '<strong style="color:#f59e0b">🎯 ORIENTATION IOB (Réduction de la souffrance évitable)</strong>')
+        .replace(/⚖️ CONCLUSION & CONDITIONS DE RÉVISION/g, '<strong style="color:#ef4444">⚖️ CONCLUSION & CONDITIONS DE RÉVISION</strong>')
+        .replace(/\n/g, '<br>');
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function cleanResponse(raw) {
+      let text = String(raw || '').trim();
+
+      // Remove common pollution from some free models
+      text = text.replace(/^```[\s\S]*?```/g, '');
+      text = text.replace(/\{[\s\S]*?"role"\s*:\s*"assistant"[\s\S]*?\}/g, '');
+      text = text.replace(/\{[\s\S]*?"reasoning"[\s\S]*?\}/g, '');
+      text = text.replace(/\{[\s\S]*?"tool_calls"[\s\S]*?\}/g, '');
+      text = text.replace(/We need to respond[\s\S]*?(?=📌|FAITS|$)/gi, '');
+      text = text.replace(/Let's (browse|think|fetch|pick)[\s\S]*?(?=📌|FAITS|$)/gi, '');
+      text = text.replace(/The user:[\s\S]*?(?=📌|FAITS|$)/gi, '');
+      text = text.replace(/Ok\. Let's[\s\S]*?(?=📌|FAITS|$)/gi, '');
+      text = text.replace(/ARIANE\s*:\s*/i, '');
+      text = text.replace(/^["']|["']$/g, '');
+
+      // If the response still starts with junk, try to cut to the first structure marker
+      const markers = ['📌 FAITS ÉTABLIS', '📌 FAITS', 'FAITS ÉTABLIS', '🔍 HYPOTHÈSES'];
+      for (const m of markers) {
+        const idx = text.indexOf(m);
+        if (idx > 0) {
+          text = text.slice(idx);
+          break;
+        }
+      }
+
+      return text.trim();
+    }
+
+    // ==================== ACTIONS ====================
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+
+    async function sendMessage() {
+      if (isGenerating) return;
+      const input = document.getElementById('userInput');
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) return;
+
+      const conv = conversations.find(c => c.id === currentId);
+      if (!conv) return;
+
+      // Update title if first message
+      if (conv.messages.length === 0) {
+        conv.title = text.slice(0, 40) + (text.length > 40 ? '…' : '');
+      }
+
+      conv.messages.push({ role: 'user', content: text });
+      input.value = '';
+      input.style.height = 'auto';
+      save();
+      renderMessages(conv.messages);
+      renderHistory();
+
+      await generateResponse();
+    }
+
+    async function generateResponse() {
+      const conv = conversations.find(c => c.id === currentId);
+      if (!conv || isGenerating) return;
+
+      isGenerating = true;
+      const sendBtn = document.getElementById('sendBtn');
+      if (sendBtn) sendBtn.disabled = true;
+
+      // Show typing indicator
+      const area = document.getElementById('chatArea');
+      const typing = document.createElement('div');
+      typing.className = 'message assistant';
+      typing.id = 'typingIndicator';
+      typing.innerHTML = `<div class="typing"><span></span><span></span><span></span></div>`;
+      area.appendChild(typing);
+      area.scrollTop = area.scrollHeight;
+
+      const start = Date.now();
+
+      try {
+        // Build conversation history for context (limit to last 8 messages to avoid too long prompts)
+        const recent = conv.messages.slice(-8);
+        const history = recent.map(m => 
+          (m.role === 'user' ? 'Utilisateur : ' : 'ARIANE : ') + m.content
+        ).join('\n\n');
+
+        const fullPrompt = SYSTEM_PROMPT + `
+
+RÈGLE ABSOLUE DE SORTIE :
+- Tu réponds UNIQUEMENT avec la structure demandée (📌 FAITS ÉTABLIS, etc.).
+- Tu n'écris JAMAIS de raisonnement interne, de "thinking", de JSON, de tool_calls, de "We need to...", de "Let's browse..." ou de monologue.
+- Tu commences directement par "📌 FAITS ÉTABLIS".
+- Aucun texte avant ou après la structure.
+
+---
+Conversation :
+` + history + `
+
+ARIANE :`;
+
+        // Free unlimited endpoint (no API key required)
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 90000);
+
+        const url = 'https://text.pollinations.ai/' + encodeURIComponent(fullPrompt) + '?model=openai&temperature=0.4';
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'Accept': 'text/plain' },
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) throw new Error('Erreur réseau (' + response.status + ')');
+
+        let text = await response.text();
+        text = cleanResponse(text);
+        if (!text || text.length < 20) throw new Error('Réponse vide ou invalide');
+
+        const duration = Date.now() - start;
+
+        // Remove typing
+        const typingEl = document.getElementById('typingIndicator');
+        if (typingEl) typingEl.remove();
+
+        conv.messages.push({ role: 'assistant', content: text, duration });
+        save();
+        renderMessages(conv.messages);
+      } catch (err) {
+        const typingEl = document.getElementById('typingIndicator');
+        if (typingEl) typingEl.remove();
+
+        const duration = Date.now() - start;
+        const errorMsg = `⚠️ Impossible de générer une réponse pour le moment.\n\nErreur : ${err.message || err}\n\nRéessayez dans quelques instants.`;
+        conv.messages.push({ role: 'assistant', content: errorMsg, duration });
+        save();
+        renderMessages(conv.messages);
+      } finally {
+        isGenerating = false;
+        if (sendBtn) sendBtn.disabled = false;
+      }
+    }
+
+    function editMessage(idx) {
+      const conv = conversations.find(c => c.id === currentId);
+      if (!conv || conv.messages[idx].role !== 'user') return;
+
+      const msgEl = document.querySelector(`.message[data-idx="${idx}"]`);
+      const original = conv.messages[idx].content;
+
+      msgEl.innerHTML = `
+        <div class="edit-area">
+          <textarea id="editInput">${escapeHtml(original)}</textarea>
+          <div class="edit-actions">
+            <button class="action-btn" onclick="cancelEdit(${idx})">Annuler</button>
+            <button class="action-btn" style="background:var(--accent);color:white;border-color:var(--accent)" onclick="saveEdit(${idx})">Enregistrer & régénérer</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('editInput').focus();
+    }
+
+    function cancelEdit(idx) {
+      const conv = conversations.find(c => c.id === currentId);
+      renderMessages(conv.messages);
+    }
+
+    async function saveEdit(idx) {
+      const conv = conversations.find(c => c.id === currentId);
+      const newText = document.getElementById('editInput').value.trim();
+      if (!newText) return;
+
+      // Truncate conversation after this message and replace
+      conv.messages = conv.messages.slice(0, idx);
+      conv.messages.push({ role: 'user', content: newText });
+      if (idx === 0) conv.title = newText.slice(0, 40) + (newText.length > 40 ? '…' : '');
+      save();
+      renderMessages(conv.messages);
+      renderHistory();
+      await generateResponse();
+    }
+
+    function copyMessage(idx) {
+      const conv = conversations.find(c => c.id === currentId);
+      if (!conv) return;
+      navigator.clipboard.writeText(conv.messages[idx].content).then(() => {
+        const btn = document.querySelector(`.message[data-idx="${idx}"] .action-btn`);
+        if (btn) {
+          const old = btn.innerHTML;
+          btn.innerHTML = '✓ Copié';
+          setTimeout(() => btn.innerHTML = old, 1500);
+        }
+      });
+    }
+
+    async function retryMessage(idx) {
+      const conv = conversations.find(c => c.id === currentId);
+      if (!conv || conv.messages[idx].role !== 'assistant') return;
+
+      // Remove this assistant message and regenerate
+      conv.messages = conv.messages.slice(0, idx);
+      save();
+      renderMessages(conv.messages);
+      await generateResponse();
+    }
+
+    // ==================== START ====================
+    init();
+  </script>
+</body>
+</html>
