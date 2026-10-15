@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIANE — Intelligence d'audit et de diagnostic systémique</title>
+<style>
+:root{
+  --bg:#0b0e14; --bg2:#10141d; --bg3:#161b27; --border:#232b3d;
+  --txt:#e6e9f0; --txt2:#9aa3b5; --txt3:#6b7488;
+  --accent:#5b8cff; --accent2:#8f6bff; --good:#3ecf8e; --warn:#f5b942; --bad:#ef5f6b;
+  --radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);height:100vh;display:flex;overflow:hidden}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ===== SIDEBAR ===== */
+#sidebar{width:290px;min-width:290px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column}
+#sideHeader{padding:18px 16px 12px;border-bottom:1px solid var(--border)}
+#logo{display:flex;align-items:center;gap:10px}
+#logo .mark{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;color:#fff;box-shadow:0 0 18px rgba(91,140,255,.35)}
+#logo h1{font-size:17px;letter-spacing:2.5px}
+#logo p{font-size:10.5px;color:var(--txt3);letter-spacing:.4px}
+#newConvBtn{margin-top:14px;width:100%;padding:11px;border:none;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+#newConvBtn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+#convList{flex:1;overflow-y:auto;padding:10px}
+.convItem{padding:11px 12px;border-radius:11px;cursor:pointer;margin-bottom:6px;border:1px solid transparent;transition:.15s;position:relative}
+.convItem:hover{background:var(--bg3)}
+.convItem.active{background:var(--bg3);border-color:var(--border)}
+.convItem .t{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:24px}
+.convItem .d{font-size:11px;color:var(--txt3);margin-top:3px}
+.convItem .del{position:absolute;top:9px;right:8px;width:24px;height:24px;border:none;border-radius:7px;background:transparent;color:var(--txt3);cursor:pointer;font-size:14px;display:none;align-items:center;justify-content:center}
+.convItem:hover .del{display:flex}
+.convItem .del:hover{background:rgba(239,95,107,.15);color:var(--bad)}
+#sideFooter{padding:10px 14px;border-top:1px solid var(--border);font-size:11px;color:var(--txt3);line-height:1.5}
+
+/* ===== MAIN ===== */
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+#topbar{height:58px;display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid var(--border);background:var(--bg2)}
+#chatTitle{font-size:15px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#modeBadge{font-size:11.5px;padding:5px 11px;border-radius:20px;border:1px solid var(--border);color:var(--txt2);display:flex;align-items:center;gap:6px;white-space:nowrap}
+#modeBadge .dot{width:8px;height:8px;border-radius:50%}
+.dot.on{background:var(--good);box-shadow:0 0 8px var(--good)}
+.dot.off{background:var(--warn)}
+.iconBtn{width:38px;height:38px;border:1px solid var(--border);background:var(--bg3);color:var(--txt2);border-radius:10px;cursor:pointer;font-size:16px;transition:.15s;display:flex;align-items:center;justify-content:center}
+.iconBtn:hover{color:var(--txt);border-color:var(--accent)}
+
+#messages{flex:1;overflow-y:auto;padding:26px 0}
+#msgInner{max-width:860px;margin:0 auto;padding:0 24px}
+.emptyState{text-align:center;padding:70px 30px;color:var(--txt2)}
+.emptyState .big{font-size:52px;margin-bottom:16px}
+.emptyState h2{font-size:22px;margin-bottom:10px;color:var(--txt)}
+.emptyState p{font-size:14px;line-height:1.7;max-width:560px;margin:0 auto 8px}
+.chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.chip{padding:9px 16px;border:1px solid var(--border);border-radius:22px;font-size:13px;cursor:pointer;transition:.15s;background:var(--bg3)}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+
+.msg{margin-bottom:26px;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.msg .row{display:flex;gap:14px}
+.avatar{width:36px;height:36px;min-width:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+.msg.user .avatar{background:linear-gradient(135deg,#3ecf8e,#2aa86e);color:#fff}
+.msg.ai .avatar{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.bubbleWrap{flex:1;min-width:0}
+.bubbleHead{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.name{font-size:13.5px;font-weight:700}
+.youTag{font-size:10px;background:var(--bg3);border:1px solid var(--border);padding:2px 8px;border-radius:10px;color:var(--txt3)}
+.timeBadge{font-size:11px;color:var(--txt3);display:flex;align-items:center;gap:5px}
+.timeBadge .clock{font-size:12px}
+.bubble{background:var(--bg3);border:1px solid var(--border);border-radius:4px 14px 14px 14px;padding:14px 18px;font-size:14.5px;line-height:1.75}
+.msg.user .bubble{background:rgba(91,140,255,.08);border-radius:14px 4px 14px 14px}
+.bubble p{margin-bottom:10px}
+.bubble p:last-child{margin-bottom:0}
+.bubble strong{color:#fff}
+.bubble h4{margin:14px 0 6px;font-size:14px;color:var(--accent)}
+.bubble ul,.bubble ol{margin:6px 0 10px 20px}
+.bubble li{margin-bottom:4px}
+.bubble code{background:var(--bg);padding:2px 6px;border-radius:5px;font-size:13px;color:#9ecbff}
+.bubble blockquote{border-left:3px solid var(--accent);padding:6px 14px;margin:10px 0;color:var(--txt2);background:rgba(91,140,255,.05);border-radius:0 8px 8px 0}
+.bubble table{border-collapse:collapse;margin:10px 0;width:100%;font-size:13px}
+.bubble th,.bubble td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+.bubble th{background:var(--bg2)}
+.actions{display:flex;gap:6px;margin-top:8px;opacity:0;transition:.2s}
+.msg:hover .actions{opacity:1}
+.actBtn{display:flex;align-items:center;gap:6px;padding:5px 11px;font-size:12px;border:1px solid var(--border);background:var(--bg2);color:var(--txt2);border-radius:8px;cursor:pointer;transition:.15s}
+.actBtn:hover{color:var(--txt);border-color:var(--accent)}
+.actBtn.copied{color:var(--good);border-color:var(--good)}
+.editArea{width:100%;background:var(--bg);border:1px solid var(--accent);border-radius:10px;color:var(--txt);padding:12px;font-size:14.5px;font-family:inherit;resize:vertical;min-height:80px;line-height:1.6}
+.editActions{display:flex;gap:8px;margin-top:8px}
+
+/* typing */
+#typing{display:none;padding:0 24px 20px;max-width:860px;margin:0 auto}
+#typing .row{display:flex;gap:14px}
+.dots{display:flex;gap:5px;padding:16px 18px;background:var(--bg3);border:1px solid var(--border);border-radius:4px 14px 14px 14px;align-items:center}
+.dots span{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:bounce 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.15s}
+.dots span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
+#liveChrono{margin-left:12px;font-size:12px;color:var(--txt2);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}
+#liveChrono .clock{animation:tick 1s infinite}
+@keyframes tick{50%{opacity:.3}}
+
+/* input */
+#inputArea{border-top:1px solid var(--border);background:var(--bg2);padding:16px 24px}
+#inputInner{max-width:860px;margin:0 auto;position:relative}
+#inputBox{display:flex;align-items:flex-end;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:12px 14px;transition:.2s}
+#inputBox:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,140,255,.12)}
+#input{flex:1;background:transparent;border:none;outline:none;color:var(--txt);font-size:15px;resize:none;font-family:inherit;line-height:1.5;max-height:180px}
+#sendBtn{width:42px;height:42px;min-width:42px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:18px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center}
+#sendBtn:hover:not(:disabled){filter:brightness(1.2)}
+#sendBtn:disabled{opacity:.4;cursor:not-allowed}
+#inputHint{text-align:center;font-size:11px;color:var(--txt3);margin-top:9px}
+
+/* modal */
+#modalOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);z-index:100;align-items:center;justify-content:center}
+#modalOverlay.show{display:flex}
+#modal{background:var(--bg2);border:1px solid var(--border);border-radius:18px;width:min(560px,92vw);max-height:85vh;overflow-y:auto;padding:26px;animation:fadeIn .25s}
+#modal h2{font-size:19px;margin-bottom:4px}
+#modal .sub{font-size:13px;color:var(--txt2);margin-bottom:20px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.field .hint{font-size:11.5px;color:var(--txt3);margin-top:5px;line-height:1.5}
+.field input,.field select{width:100%;padding:11px 13px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--txt);font-size:14px;outline:none}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.modeCards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.modeCard{border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:.15s;background:var(--bg)}
+.modeCard:hover{border-color:var(--accent)}
+.modeCard.sel{border-color:var(--accent);background:rgba(91,140,255,.08)}
+.modeCard h3{font-size:14px;margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.modeCard p{font-size:11.5px;color:var(--txt2);line-height:1.5}
+#modalClose{width:100%;margin-top:8px;padding:12px;border:none;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+#clearAll{width:100%;margin-top:10px;padding:10px;border:1px solid var(--bad);background:transparent;color:var(--bad);border-radius:11px;font-size:13px;cursor:pointer}
+#clearAll:hover{background:rgba(239,95,107,.1)}
+@media(max-width:760px){#sidebar{display:none}}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sideHeader">
+    <div id="logo">
+      <div class="mark">Λ</div>
+      <div><h1>ARIANE</h1><p>Audit · IOB · IFH-TEC · V(t)</p></div>
+    </div>
+    <button id="newConvBtn">＋ Nouvelle conversation</button>
+  </div>
+  <div id="convList"></div>
+  <div id="sideFooter">Architecture de raisonnement en cours d'évaluation. Les conclusions d'ARIANE doivent être vérifiées.</div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <span id="chatTitle">Nouvelle conversation</span>
+    <span id="modeBadge"><span class="dot off" id="modeDot"></span><span id="modeText">Mode local</span></span>
+    <button class="iconBtn" id="settingsBtn" title="Paramètres">⚙️</button>
+  </div>
+
+  <div id="messages"><div id="msgInner"></div></div>
+
+  <div id="typing">
+    <div class="row">
+      <div class="avatar">Λ</div>
+      <div class="bubbleWrap">
+        <div class="dots"><span></span><span></span><span></span><div id="liveChrono"><span class="clock">⏱</span><span id="chronoVal">00:00.0</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="inputArea">
+    <div id="inputInner">
+      <div id="inputBox">
+        <textarea id="input" rows="1" placeholder="Parlez librement à ARIANE…"></textarea>
+        <button id="sendBtn" title="Envoyer">➤</button>
+      </div>
+      <div id="inputHint">ARIANE distingue faits, hypothèses et conclusions — Entrée pour envoyer, Maj+Entrée pour sauter une ligne</div>
+    </div>
+  </div>
+</div>
+
+<div id="modalOverlay">
+  <div id="modal">
+    <h2>⚙️ Paramètres</h2>
+    <p class="sub">Choisissez le moteur de réponse d'ARIANE.</p>
+    <div class="modeCards">
+      <div class="modeCard" data-mode="online" id="cardOnline">
+        <h3>🌐 Connecté — Internet</h3>
+        <p>ARIANE répond via un modèle d'IA en ligne (capable de rechercher des informations récentes). Aucune clé requise par défaut.</p>
+      </div>
+      <div class="modeCard" data-mode="local" id="cardLocal">
+        <h3>📴 Moteur local ARIANE</h3>
+        <p>Moteur intégré hors-ligne : applique structurellement ARI (C1–C5), IOB, IFH-TEC et V(t). Réponses instantanées.</p>
+      </div>
+    </div>
+    <div class="field" id="endpointField" style="display:none">
+      <label>URL de l'API (compatible OpenAI)</label>
+      <input type="text" id="apiEndpoint" placeholder="https://text.pollinations.ai/openai">
+      <p class="hint">Par défaut : pollinations.ai (gratuit, sans clé, avec accès Internet). Vous pouvez indiquer une autre URL compatible OpenAI Chat Completions.</p>
+    </div>
+    <div class="field" id="keyField" style="display:none">
+      <label>Clé API (optionnel)</label>
+      <input type="password" id="apiKey" placeholder="sk-...">
+      <p class="hint">Laissez vide pour le service gratuit par défaut.</p>
+    </div>
+    <button id="modalClose">Enregistrer</button>
+    <button id="clearAll">🗑️ Effacer tout l'historique</button>
+  </div>
+</div>
+
+<script>
+/* ================= ÉTAT & PERSISTANCE ================= */
+const LS_KEY='ariane_conversations_v1';
+const LS_SET='ariane_settings_v1';
+let convs=JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+let settings=JSON.parse(localStorage.getItem(LS_SET)||'{"mode":"local","endpoint":"https://text.pollinations.ai/openai","key":""}');
+let currentId=null;
+let generating=false;
+let chronoTimer=null;
+let chronoStart=0;
+
+const $=s=>document.querySelector(s);
+const save=()=>localStorage.setItem(LS_KEY,JSON.stringify(convs));
+const saveSettings=()=>localStorage.setItem(LS_SET,JSON.stringify(settings));
+const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const now=()=>new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+
+function currentConv(){return convs.find(c=>c.id===currentId);}
+function newConv(title){
+  const c={id:uid(),title:title||'Nouvelle conversation',created:Date.now(),messages:[]};
+  convs.unshift(c);currentId=c.id;save();renderSidebar();renderMessages();return c;
+}
+
+/* ================= CHRONOMÈTRE ================= */
+function startChrono(){
+  chronoStart=performance.now();
+  $('#typing').style.display='block';
+  scrollBottom();
+  chronoTimer=setInterval(()=>{
+    const e=(performance.now()-chronoStart)/1000;
+    const m=String(Math.floor(e/60)).padStart(2,'0');
+    const s=String(Math.floor(e%60)).padStart(2,'0');
+    const d=Math.floor((e%1)*10);
+    $('#chronoVal').textContent=m+':'+s+'.'+d;
+  },100);
+}
+function stopChrono(){
+  clearInterval(chronoTimer);
+  const e=(performance.now()-chronoStart)/1000;
+  $('#typing').style.display='none';
+  return e;
+}
+
+/* ================= SYSTÈME ARIANE ================= */
+const SYSTEM_PROMPT=`Tu es ARIANE, une architecture de raisonnement appliquée en mode conversationnel (laboratoire Tchat-ARI). Tu combines quatre fondements :
+
+1. ARI v1.2 (Auto-Révision Itérative) : applique le cycle Observer → Séparer → Représenter → Hypothéser → Déduire → Vérifier → Tester → Contraster → Réviser. Tu dois distinguer explicitement : faits établis, affirmations, preuves, interprétations, hypothèses (y compris concurrentes) et conclusions. Tu dois appliquer les contrôles transversaux :
+- C1 Conservation de portée : la conclusion ne dépasse pas les prémisses.
+- C2 Conservation du niveau d'analyse : pas de transfert automatique entre individu/groupe/organisation/système.
+- C3 Proportionnalité probatoire : le niveau de certitude est proportionné à la qualité des preuves.
+- C4 Séparation réfutation/démonstration : réfuter A ne démontre pas B.
+- C5 Critère probatoire explicite : préciser ce qui compterait comme preuve ou réfutation.
+Tu dois expliciter ton degré de certitude et les conditions qui justifieraient une révision de tes conclusions.
+
+2. IOB (Intelligence Orientée vers le Bien) : orientation normative — améliorer continuellement les moyens pour réduire la souffrance évitable et développer les conditions favorables. Examine les conséquences humaines des événements, les dommages évitables et les possibilités d'amélioration. Mais l'IOB ne remplace pas la recherche de la vérité : une affirmation n'est pas vraie parce qu'elle semble bénéfique.
+
+3. IFH-TEC : analyse systémique selon quatre dimensions — cosmos (environnement/stabilité), biologie (protection de la vie), social (coopération/cohésion), conscience (discernement/qualité de l'information). Analyse les dépendances, vulnérabilités, interactions et mécanismes de propagation des perturbations. Utilise la logique du pivot (un élément modifiant la trajectoire du système) et, si pertinent, le diagnostic dynamique TEC (condensation/expansion, Pn vs Pe, D(t) diplomatie, F(t) fragmentation, C(t) confiance minimale).
+
+4. V(t) : vulnérabilité systémique. Vs(t)=[D(t)+E(t)+K(t)]/3 ; V(t)=Vs(t)×[1−A_eff(t)]. Distingue toujours vulnérabilité (fragilité face à une perturbation) et souffrance (dégradation effectivement produite). Rappelle que cette formule est un modèle candidat, non une loi validée.
+
+Style de réponse : en français, structuré avec des sections claires (📋 Faits établis / 🔍 Hypothèses / ⚖️ Contrôles ARI / 🧭 Orientation IOB / 🛰️ Analyse IFH-TEC / 🛡️ V(t) si pertinent / ✅ Conclusions proportionnées avec degré de certitude / 🔄 Conditions de révision). Reste honnête sur tes limites et incertitudes. N'invente jamais de faits : si tu ne sais pas, dis-le et indique ce qui permettrait de le vérifier. Tu es connectée à Internet : pour les questions d'actualité, indique que tu peux raisonner sur des informations récentes et précise la date de référence si tu l'utilises.`;
+
+/* ---------- Générateur local ARIANE ---------- */
+function localAriane(text){
+  const t=text.toLowerCase();
+  const num=text.match(/-?\d+([.,]\d+)?/g);
+  const low=/^(bonjour|salut|hello|coucou|bonsoir|hey)/.test(t.trim());
+  if(low && t.length<40){
+    return `Bonjour. Je suis **ARIANE**, architecture de raisonnement appliquée en mode conversationnel (laboratoire **Tchat-ARI**).
+
+Je combine quatre fondements :
+- **ARI v1.2** — audit et révision du raisonnement, avec les contrôles C1–C5 ;
+- **IOB** — orientation vers la réduction de la souffrance évitable et le développement des conditions favorables ;
+- **IFH-TEC** — diagnostic systémique selon quatre dimensions (cosmos, biologie, social, conscience) ;
+- **V(t)** — estimation de la vulnérabilité systémique.
+
+🔄 **Conditions de révision** : précisez votre question, votre domaine, ou fournissez des données chiffrées — je structurerai l'analyse en conséquence, avec un degré de certitude proportionné aux éléments disponibles.`;
+  }
+
+  // V(t) chiffré si au moins 4 nombres fournis
+  let vtSection='';
+  if(num && num.length>=4){
+    const v=num.slice(0,4).map(x=>Math.min(1,Math.max(0,parseFloat(x.replace(',','.')))));
+    const Vs=(v[0]+v[1]+v[2])/3, V=Vs*(1-v[3]);
+    vtSection=`#### 🛡️ V(t) — calcul sur vos valeurs
+| Variable | Valeur |
+|---|---|
+| D (dépendance) | ${v[0]} |
+| E (exposition) | ${v[1]} |
+| K (concentration) | ${v[2]} |
+| A_eff (adaptation effective) | ${v[3]} |
+| **Vₛ = (D+E+K)/3** | **${Vs.toFixed(2)}** |
+| **V = Vₛ × (1−A_eff)** | **${V.toFixed(2)}** |
+
+⚠️ *Formule candidate, non validée : interpréter avec prudence (contrôle ARI v1.2). Ne pas confondre vulnérabilité et souffrance effective.*`;
+  } else {
+    vtSection=`#### 🛡️ V(t) — estimation qualitative
+Sans données normalisées (0 à 1) sur D, E, K et A_eff, aucun calcul fiable n'est possible — je refuse d'inventer des valeurs (**C5 — critère probatoire explicite**).
+Pour calculer : fournissez quatre nombres, ex. \`D=0.9 E=0.8 K=0.7 A_eff=0.4\`.`;
+  }
+
+  const hasDigits=/\d/.test(text);
+  const isCrisis=/crise|guerre|conflit|accident|effondrement|catastrophe|pandémie|attaque|sanction|pénurie/.test(t);
+  const isDecision=/dois-je|faut-il|devrais|choisir|décision|conseil|meilleur/.test(t);
+
+  let ifh=`- **Cosmos / environnement** : stabilité du contexte dans lequel le système évolue ; rechercher les perturbations externes dominantes.
+- **Biologie / protection de la vie** : conséquences sur les personnes, santé, sécurité physique, pertes évitables.
+- **Social / coopération** : confiance, cohésion, capacité d'action collective, risques de fragmentation.
+- **Conscience / discernement** : qualité de l'information disponible, risques de désinformation, clarté du diagnostic.`;
+  if(isCrisis){
+    ifh+=`
+
+*Lecture dynamique TEC* : examiner si les forces d'expansion (escalade punitive Pe, fragmentation F) dominent les forces de condensation (neutralisation défensive Pn, diplomatie D, confiance minimale C). Si Pe > D durablement → trajectoire d'expansion ; si D > Pe → possible recondensation. Rechercher les **pivots** capables de renverser cette trajectoire.`;
+  }
+
+  return `#### 📋 1. Observation — séparation des éléments
+**Votre demande** (reformulée sans interprétation ajoutée) : ${text.length>300?text.slice(0,300)+'…':text}
+
+| Élément | Statut |
+|---|---|
+| Faits établis dans votre message | ${hasDigits?'Présents (données chiffrées détectées)':'Aucun fait vérifiable fourni — seule votre question est connue'} |
+| Ce qui manque | Données indépendantes, sources, critères de preuve |
+| Mon accès Internet | ${settings.mode==='online'?'Le moteur connecté peut raisonner sur des informations récentes':'Désactivé (mode local) — je ne peux pas vérifier de faits actuels'} |
+
+#### 🔍 2. Hypothèses (non exclusives)
+- **H1** — Vous cherchez un diagnostic structuré de la situation décrite.
+- **H2** — Vous testez la méthode ARIANE elle-même (laboratoire Tchat-ARI).
+- **H3** — Vous attendez une aide à la décision.
+
+*C4 : écarteler ces hypothèses ne démontre aucune d'entre elles — une question de clarification serait discriminante.*
+
+#### 🛰️ 3. Analyse systémique IFH-TEC
+${ifh}
+
+${vtSection}
+
+#### 🧭 4. Orientation IOB
+- Examiner les **conséquences humaines** : quelles souffrances sont évitables ici ?
+- Identifier les **conditions favorables** à préserver ou restaurer (sécurité, confiance, coopération, accès à l'information).
+- Principe de composition : une contrainte immédiate peut être justifiée si elle réduit une souffrance plus grande — mais elle ne devient jamais un objectif en soi.
+- *Rappel* : l'IOB oriente l'analyse, elle ne fabrique pas des faits.
+
+#### ⚖️ 5. Contrôles ARI v1.2
+- **C1 Portée** : conclusion limitée à votre message — aucune généralisation.
+- **C2 Niveau d'analyse** : niveau actuel = votre situation telle que décrite ; pas de transfert à d'autres cas.
+- **C3 Proportionnalité** : degré de certitude = **faible à modéré** (informations insuffisantes).
+- **C4 Réfutation ≠ démonstration** : appliqué.
+- **C5 Critère probatoire** : une source indépendante, des données datées ou un chiffrement explicite renforceraient l'analyse.
+
+#### ✅ 6. Conclusion (proportionnée)
+${isDecision?'Sans critères pondérés ni contraintes chiffrées, aucune recommandation unique n\'est démontrée. Je peux structurer un tableau de décision si vous fournissez les options et critères.':'Un diagnostic complet exige des éléments factuels supplémentaires. La structure ci-dessus fournit la grille ; les contenus doivent être remplis par des données vérifiables.'}
+
+#### 🔄 7. Conditions de révision
+Je réviserai cette analyse si : (a) vous fournissez des faits/sources, (b) une hypothèse concurrente mieux supportée apparaît, (c) vous corrigez mes interprétations — corrigez-moi librement, c'est le principe même d'ARI.
+`;
+}
+
+/* ================= MOTEUR EN LIGNE ================= */
+async function onlineAriane(history){
+  const endpoint=(settings.endpoint||'https://text.pollinations.ai/openai').trim();
+  const key=(settings.key||'').trim();
+  const msgs=[{role:'system',content:SYSTEM_PROMPT},...history.map(m=>({role:m.role==='ai'?'assistant':'user',content:m.content}))];
+  const res=await fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json',...(key?{'Authorization':'Bearer '+key}:{})},
+    body:JSON.stringify({model:'openai',messages:msgs})
+  });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const data=await res.json();
+  const txt=data.choices?.[0]?.message?.content || data.text || (typeof data==='string'?data:null);
+  if(!txt) throw new Error('Réponse vide');
+  return txt;
+}
+
+async function generateResponse(history,userText){
+  if(settings.mode==='online'){
+    try{
+      const t=await onlineAriane(history);
+      return {text:t,source:'🌐 IA connectée (Internet)'};
+    }catch(e){
+      return {text:'_⚠️ Le moteur en ligne est injoignable ('+esc(String(e.message||e))+'). Basculez en mode local ou vérifiez l\'URL dans les paramètres._\n\n'+localAriane(userText),source:'📴 Moteur local (repli)'};
+    }
+  }
+  await new Promise(r=>setTimeout(r,700+Math.random()*900));
+  return {text:localAriane(userText),source:'📴 Moteur local ARIANE'};
+}
+
+/* ================= RENDU ================= */
+function md(src){
+  let s=esc(src);
+  s=s.replace(/```([\s\S]*?)```/g,(m,c)=>'<pre style="background:var(--bg);padding:12px;border-radius:8px;overflow-x:auto;font-size:13px"><code>'+c.trim()+'</code></pre>');
+  s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  s=s.replace(/^#### (.*)$/gm,'<h4>$1</h4>').replace(/^### (.*)$/gm,'<h4>$1</h4>').replace(/^## (.*)$/gm,'<h4>$1</h4>');
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/^&gt; (.*)$/gm,'<blockquote>$1</blockquote>');
+  // listes
+  s=s.replace(/(?:^|\n)((?:[-*] .*(?:\n|$))+)/g,(m,blk)=>'<ul>'+blk.trim().split('\n').map(l=>'<li>'+l.replace(/^[-*] /,'')+'</li>').join('')+'</ul>');
+  s=s.replace(/(?:^|\n)((?:\d+\. .*(?:\n|$))+)/g,(m,blk)=>'<ol>'+blk.trim().split('\n').map(l=>'<li>'+l.replace(/^\d+\. /,'')+'</li>').join('')+'</ol>');
+  // tableaux markdown
+  s=s.replace(/((?:^\|.*\|$\n?)+)/gm,(m,tbl)=>{
+    const rows=tbl.trim().split('\n').filter(r=>!/^[\|\s:-]+$/.test(r));
+    if(!rows.length)return m;
+    const cells=r=>r.split('|').slice(1,-1).map(c=>c.trim());
+    const head=cells(rows[0]);
+    let h='<table><tr>'+head.map(c=>'<th>'+c+'</th>').join('')+'</tr>';
+    for(let i=1;i<rows.length;i++)h+='<tr>'+cells(rows[i]).map(c=>'<td>'+c+'</td>').join('')+'</tr>';
+    return h+'</table>';
+  });
+  s=s.split(/\n{2,}/).map(p=>/^<|^#{0}/.test(p)&&/^<(h4|ul|ol|table|pre|blockquote)/.test(p)?p:'<p>'+p.replace(/\n/g,'<br>')+'</p>').join('\n');
+  return s;
+}
+
+function renderMessages(){
+  const c=currentConv();const inner=$('#msgInner');
+  if(!c||!c.messages.length){
+    $('#chatTitle').textContent=c?c.title:'Nouvelle conversation';
+    inner.innerHTML=`<div class="emptyState">
+      <div class="big">🧭</div>
+      <h2>Parlez librement à ARIANE</h2>
+      <p>Une architecture de raisonnement qui audite ses propres conclusions, distingue les faits des hypothèses, et s'oriente vers la réduction de la souffrance évitable.</p>
+      <div class="chips">
+        <div class="chip" data-q="Analyse la crise énergétique d'un pays dépendant à 90% d'une seule source d'importation (D=0.9, E=0.8, K=0.85, A_eff=0.3)">🛡️ Tester V(t) avec des chiffres</div>
+        <div class="chip" data-q="Quelles sont les conditions favorables à la formation harmonieuse d'une équipe en conflit ?">🧭 Explorer les Conditions Favorables</div>
+        <div class="chip" data-q="Fais l'audit logique de cet argument : réfuter une hypothèse prouve-t-elle sa concurrente ?">⚖️ Auditer un raisonnement (C4)</div>
+      </div></div>`;
+    document.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>{$('#input').value=ch.dataset.q;send();});
+    return;
+  }
+  $('#chatTitle').textContent=c.title;
+  inner.innerHTML=c.messages.map(m=>msgHTML(m)).join('');
+  attachActions();
+  scrollBottom();
+}
+
+function msgHTML(m){
+  const isUser=m.role==='user';
+  const head=`<div class="bubbleHead"><span class="name">${isUser?'Vous':'ARIANE'}</span>
+    ${isUser?'<span class="youTag">vous</span>':''}
+    ${m.source?`<span class="youTag">${esc(m.source)}</span>`:''}
+    ${m.elapsed!=null?`<span class="timeBadge"><span class="clock">⏱</span>${m.elapsed.toFixed(1)} s</span>`:''}
+    ${m.edited?'<span class="youTag">modifié</span>':''}</div>`;
+  if(m.role==='editing'){
+    return `<div class="msg user" data-id="${m.id}"><div class="row"><div class="avatar">V</div><div class="bubbleWrap">
+      ${head}<textarea class="editArea" id="edit-${m.id}">${esc(m.content)}</textarea>
+      <div class="editActions">
+        <button class="actBtn" data-act="saveEdit" data-id="${m.id}">✔ Enregistrer et régénérer</button>
+        <button class="actBtn" data-act="cancelEdit" data-id="${m.id}">✖ Annuler</button>
+      </div></div></div></div>`;
+  }
+  return `<div class="msg ${isUser?'user':'ai'}" data-id="${m.id}">
+    <div class="row"><div class="avatar">${isUser?'V':'Λ'}</div>
+    <div class="bubbleWrap">${head}
+      <div class="bubble">${md(m.content)}</div>
+      <div class="actions">
+        ${isUser?`<button class="actBtn" data-act="edit" data-id="${m.id}">✏️ Modifier</button>`:`
+        <button class="actBtn" data-act="copy" data-id="${m.id}">📋 Copier</button>
+        <button class="actBtn" data-act="retry" data-id="${m.id}">🔁 Réessayer</button>`}
+      </div>
+    </div></div></div>`;
+}
+
+function scrollBottom(){const el=$('#messages');el.scrollTop=el.scrollHeight;}
+function attachActions(){
+  document.querySelectorAll('.actBtn').forEach(b=>b.onclick=()=>handleAction(b.dataset.act,b.dataset.id,b));
+}
+function handleAction(act,id,btn){
+  const c=currentConv();if(!c)return;
+  const idx=c.messages.findIndex(m=>m.id===id);if(idx<0)return;
+  if(act==='copy'){
+    navigator.clipboard.writeText(c.messages[idx].content).then(()=>{
+      btn.classList.add('copied');btn.innerHTML='✔ Copié !';
+      setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML='📋 Copier';},1800);
+    });
+  }else if(act==='retry'){
+    // supprime cette réponse IA et les suivantes, régénère
+    c.messages=c.messages.slice(0,idx);
+    save();renderMessages();generateAI();
+  }else if(act==='edit'){
+    c.messages[idx]={...c.messages[idx],role:'editing'};
+    save();renderMessages();
+    const ta=document.getElementById('edit-'+id);ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
+  }else if(act==='saveEdit'){
+    const val=document.getElementById('edit-'+id).value.trim();if(!val)return;
+    const orig=c.messages[idx];
+    c.messages[idx]={id:orig.id,role:'user',content:val,edited:true,editedAt:Date.now()};
+    c.messages=c.messages.slice(0,idx+1); // supprime les réponses suivantes
+    if(idx===0)c.title=val.slice(0,60);
+    save();renderSidebar();renderMessages();generateAI();
+  }else if(act==='cancelEdit'){
+    c.messages[idx]={...c.messages[idx],role:'user'};
+    save();renderMessages();
+  }
+}
+
+/* ================= ENVOI ================= */
+async function send(){
+  const val=$('#input').value.trim();if(!val||generating)return;
+  if(!currentConv())newConv();
+  const c=currentConv();
+  if(c.messages.length===0)c.title=val.slice(0,60);
+  c.messages.push({id:uid(),role:'user',content:val,ts:Date.now()});
+  $('#input').value='';autoGrow();
+  save();renderSidebar();renderMessages();
+  await generateAI();
+}
+
+async function generateAI(){
+  const c=currentConv();if(!c)return;
+  generating=true;$('#sendBtn').disabled=true;
+  startChrono();
+  const lastUser=[...c.messages].reverse().find(m=>m.role==='user');
+  const history=c.messages.filter(m=>m.role==='user'||m.role==='ai');
+  try{
+    const r=await generateResponse(history,lastUser?lastUser.content:'');
+    const elapsed=stopChrono();
+    c.messages.push({id:uid(),role:'ai',content:r.text,elapsed,source:r.source,ts:Date.now()});
+  }catch(e){
+    const elapsed=stopChrono();
+    c.messages.push({id:uid(),role:'ai',content:'⚠️ Erreur : '+esc(String(e.message||e)),elapsed,ts:Date.now()});
+  }
+  save();renderMessages();
+  generating=false;$('#sendBtn').disabled=false;$('#input').focus();
+}
+
+/* ================= SIDEBAR ================= */
+function renderSidebar(){
+  const list=$('#convList');
+  if(!convs.length){list.innerHTML='<div style="padding:20px;color:var(--txt3);font-size:12.5px;text-align:center">Aucune conversation.<br>Commencez à parler à ARIANE.</div>';return;}
+  list.innerHTML=convs.map(c=>`<div class="convItem ${c.id===currentId?'active':''}" data-id="${c.id}">
+    <div class="t">${esc(c.title)}</div><div class="d">${c.messages.length} message${c.messages.length>1?'s':''} · ${now(c.created)}</div>
+    <button class="del" data-del="${c.id}" title="Supprimer">✕</button></div>`).join('');
+  list.querySelectorAll('.convItem').forEach(el=>el.onclick=e=>{
+    if(e.target.dataset.del)return;
+    currentId=el.dataset.id;renderSidebar();renderMessages();
+  });
+  list.querySelectorAll('.del').forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    if(!confirm('Supprimer cette conversation définitivement ?'))return;
+    convs=convs.filter(c=>c.id!==b.dataset.del);
+    if(currentId===b.dataset.del)currentId=convs[0]?.id||null;
+    if(!currentId)currentId=null;
+    save();renderSidebar();renderMessages();
+  });
+}
+
+/* ================= PARAMÈTRES ================= */
+function refreshModeBadge(){
+  const on=settings.mode==='online';
+  $('#modeDot').className='dot '+(on?'on':'off');
+  $('#modeText').textContent=on?'Mode connecté — Internet':'Mode local';
+  $('#cardOnline').classList.toggle('sel',on);
+  $('#cardLocal').classList.toggle('sel',!on);
+  $('#endpointField').style.display=on?'block':'none';
+  $('#keyField').style.display=on?'block':'none';
+}
+$('#settingsBtn').onclick=()=>{$('#apiEndpoint').value=settings.endpoint;$('#apiKey').value=settings.key;refreshModeBadge();$('#modalOverlay').classList.add('show');};
+document.querySelectorAll('.modeCard').forEach(cd=>cd.onclick=()=>{settings.mode=cd.dataset.mode;refreshModeBadge();});
+$('#modalClose').onclick=()=>{
+  settings.endpoint=$('#apiEndpoint').value.trim()||'https://text.pollinations.ai/openai';
+  settings.key=$('#apiKey').value.trim();saveSettings();$('#modalOverlay').classList.remove('show');
+};
+$('#modalOverlay').onclick=e=>{if(e.target.id==='modalOverlay')$('#modalOverlay').classList.remove('show');};
+$('#clearAll').onclick=()=>{
+  if(!confirm('Effacer TOUTES les conversations ?'))return;
+  convs=[];currentId=null;save();renderSidebar();renderMessages();$('#modalOverlay').classList.remove('show');
+};
+
+/* ================= INIT ================= */
+function autoGrow(){const i=$('#input');i.style.height='auto';i.style.height=Math.min(i.scrollHeight,180)+'px';}
+$('#input').addEventListener('input',autoGrow);
+$('#input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(!generating)send();}
+});
+$('#sendBtn').onclick=()=>{if(!generating)send();};
+$('#newConvBtn').onclick=()=>{if(generating)return;newConv();$('#input').focus();};
+
+refreshModeBadge();
+if(convs.length){currentId=convs[0].id;}
+renderSidebar();renderMessages();
+$('#input').focus();
+</script>
+</body>
+</html>
